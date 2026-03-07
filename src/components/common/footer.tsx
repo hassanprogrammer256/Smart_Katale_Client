@@ -90,7 +90,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
           </ListItemDecorator >
           <ListItemContent>
            
-    <Typography level="body-sm" noWrap> Pioneer Mall - Shop No. PA08, Basement Floor. &#40; Opp. Mabiriizi Complex &#41;     </Typography>
+    <Typography level="body-sm" noWrap> Pioneer Mall - Shop No. PA48, Basement Floor. &#40; Opp. Mabiriizi Complex &#41;     </Typography>
         
           </ListItemContent>
         </ListItem>
@@ -143,7 +143,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         <CardContent>
             <List marker="disc">
 
-            <ListItem><Typography level="body-sm">Minify is No. 1 online electronic gadgets retailer in Uganda established in May 2012 with the  vision to become the one-stop shop for all electronic gadgets in Uganda</Typography></ListItem>
+            <ListItem><Typography level="body-sm">Minify is No. 1 online electronic gadgets retailer in Uganda established in May 2019 with the  vision to become the one-stop shop for all electronic gadgets in Uganda</Typography></ListItem>
 
             <ListItem><Typography level="body-sm">Minify is under the leadership of Lauben Walukagga Fredrick. This website is owned and operated by The Smart Agents I.T Solutions, Kibuli.</Typography></ListItem>
 

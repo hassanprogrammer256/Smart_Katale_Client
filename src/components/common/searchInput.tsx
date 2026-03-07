@@ -229,18 +229,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
                   </li>
                 );
               }}
-              // Fix: Use slots and slotProps instead of renderInput
-              slots={{
-                input: Input,
-              }}
-              slotProps={{
-                input: {
-                  placeholder: "Search products, categories, brands...",
-                  startDecorator: <Search />,
-                  // size: "lg",
-                  sx: { flex: 1 }
-                }
-              }}
+      
+            
             />
             
             <Button 

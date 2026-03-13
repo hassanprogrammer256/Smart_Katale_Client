@@ -1,5 +1,6 @@
 import axios from "axios"
 import { API_URL } from "../configs"
+import type { ProductDetailsProps } from "../interfaces/products.interfaces";
 
 let All_Categories:string[] = []
 let All_Brands:string[] = []
@@ -85,3 +86,39 @@ return response?.data
         return [];
     }
 };
+
+export const FetchProductData = async (product_id: string|number) : Promise<ProductDetailsProps | null> => {
+    try {
+        const response = await axios.get(`${API_URL}/products/${product_id}`);
+        if (response?.status === 200) {
+            return response.data as ProductDetailsProps;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching product data:', error);
+        return null;
+    }
+};
+
+export const UpdateProduct = async (product_id: string|number, updatedData: Partial<ProductDetailsProps>) => {
+    try {
+        const response = await axios.put(`${API_URL}/products/${product_id}`, updatedData);
+      return response?.data;} 
+      
+        catch (error) {
+        console.error('Error updating product:', error);
+        }
+    }
+
+export const DeleteProduct = async (product_id: string|number) => {
+    try {
+        const response = await axios.delete(`${API_URL}/products/${product_id}/`);
+        console.log('Delete response:', response);
+        return response?.data;
+    }catch (error) {
+        console.error('Error deleting product:', error);
+        return null;
+    }
+
+
+}

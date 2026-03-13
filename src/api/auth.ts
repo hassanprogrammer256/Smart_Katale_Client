@@ -16,10 +16,6 @@ export const UserLogin = async (credentials: {[key: string] : string}) => {
         });
   
         const data = await response.json();
-        if ( data?.success){
-            localStorage.setItem('user',JSON.stringify({id:data.id,role:data.role,is_authenticated:true}))
-        }
-
         return data;
       
 

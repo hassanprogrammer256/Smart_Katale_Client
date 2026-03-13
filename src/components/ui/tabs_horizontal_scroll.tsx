@@ -22,50 +22,51 @@ const TabsHorizontalScroll = () => {
   const [_loading, setLoading] = React.useState(true);
   const [_error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (role === 'customer' && id) {
-          const response = await FetchCustomerData(id) as CustomerDataProp;
-          if (response?.success) {
-            setCustomerData({
-              success: true,
-              Cards: { count: 0, details: [] },
-              Addresses: { count: 0, details: [] },
-              Orders: { pending_orders: 0, details: [] }
-            });
-          } else {
-            setError('Failed to load customer data');
-          }
-        } else if (role === 'manager') {
-          const response = await FetchManagerData() as ManagerDataProp;
-          if (response?.success) {
-            setManagerData({
-              success: true,
-              products: response?.products || { products: [], summary: {}, sales: {} },
-              orders: response?.orders || { 
-                pending: { count: 0, details: [] }, 
-                top_orders: [], 
-                order_details: [],
-                summary: { delivered_orders: 0, last_delivery_date: '' }
-              }
-            });
-          } else {
-            setError('Failed to load manager data');
-          }
+React.useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (role === 'customer' && id) {
+        const response = await FetchCustomerData(id) as CustomerDataProp;
+        if (response?.success) {
+          // ✅ Use the actual response data
+          setCustomerData({
+            success: true,
+            Cards: response.Cards || { count: 0, details: [] },
+            Addresses: response.Addresses || { count: 0, details: [] },
+            Orders: response.Orders || { pending_orders: 0, details: [] }
+          });
+        } else {
+          setError('Failed to load customer data');
         }
-      } catch (err) {
-        setError('Error fetching data');
-        console.error('Dashboard fetch error:', err);
-      } finally {
-        setLoading(false);
+      } else if (role === 'manager') {
+        const response = await FetchManagerData() as ManagerDataProp;
+        if (response?.success) {
+          setManagerData({
+            success: true,
+            products: response?.products || { products: [], summary: {}, sales: {} },
+            orders: response?.orders || { 
+              pending: { count: 0, details: [] }, 
+              top_orders: [], 
+              order_details: [],
+              summary: { delivered_orders: 0, last_delivery_date: '' }
+            }
+          });
+        } else {
+          setError('Failed to load manager data');
+        }
       }
-    };
+    } catch (err) {
+      setError('Error fetching data');
+      console.error('Dashboard fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, [role, id]);
+  fetchData();
+}, [role, id]);
 
   const getRoleBasedData = (): ScheduleProps => {
     if (role === 'customer' && customerData) {
@@ -151,8 +152,12 @@ const Schedule = (props: ScheduleProps) => {
           <div className="md:grid flex gap-1 flex-col md:grid-cols-[50%_50%] w-full">
             <Profile />
             <div className="flex flex-col gap-2">
-              <Address />
-              <PaymentCardForm />
+              {user_role === 'customer' ? (
+              <>
+                <Address />
+                <PaymentCardForm />
+              </>
+              ) : null}
             </div>
           </div>
         ),
@@ -231,7 +236,7 @@ const Schedule = (props: ScheduleProps) => {
 
       if (productsData && productsData.length > 0) {
         allTabs.push({
-          title: `Products (${productsData.length})`,
+          title: `Products`,
           value: 6,
           component: (
             <div className="flex flex-col w-full">

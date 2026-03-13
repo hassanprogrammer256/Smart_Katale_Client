@@ -15,3 +15,15 @@ export interface ProductCardProps {
   description?: string;
   rating?: number;
 }
+
+export interface ProductDetailsProps {
+image?: string | undefined;
+name: string | undefined;
+categories: string[];
+brands: string[];
+description: string | undefined;
+price: number | undefined;
+stock: number;
+discount: number;
+status: string | undefined;
+}

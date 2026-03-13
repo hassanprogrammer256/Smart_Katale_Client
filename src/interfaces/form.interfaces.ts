@@ -1,4 +1,4 @@
-import type { ColorPaletteProp, VariantProp } from "@mui/joy";
+import type { ColorPaletteProp} from "@mui/joy";
 
 export interface SelectOption {
   value: string | number;
@@ -14,18 +14,29 @@ export interface ControlItem {
   options?: SelectOption[]; 
   label?: string; 
   required?: boolean; 
+  validation?: {
+    fileTypes?:string[];
+    maxSize?: number
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    message?: string;
+  };
 }
 
-export interface FormProps {
+export interface FormProps<T = Record<string, any>> {
   formControls?: ControlItem[];
-  formData?: { [key: string]: any };
-  setFormData?: React.Dispatch<React.SetStateAction<{ [key: string]: any }>>;
-  onSubmit?: React.FormEventHandler<HTMLFormElement>;
-  buttonText?: string;
+  isLoading: boolean;
+  buttonText: string;
+  formData: T;
+  setFormData: React.Dispatch<React.SetStateAction<T>>;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  variant?: 'solid' | 'soft' | 'outlined' | 'plain';
   isBtnDisabled?: boolean;
-  isLoading?: boolean;
   message?: string;
-  variant?: VariantProp;
   color?: ColorPaletteProp;
   showLabels?: boolean;
+
 }

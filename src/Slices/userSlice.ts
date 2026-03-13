@@ -16,7 +16,6 @@ interface UserState {
   loading: boolean;
 }
 
-// Try to load user from sessionStorage (more secure than localStorage)
 const loadUserFromStorage = (): Partial<UserState> => {
   try {
     const userStr = sessionStorage.getItem('user');

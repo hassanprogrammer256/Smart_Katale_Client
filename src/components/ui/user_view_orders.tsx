@@ -15,7 +15,6 @@ import Select from '@mui/joy/Select';
 import Option from '@mui/joy/Option';
 import Table from '@mui/joy/Table';
 import Sheet from '@mui/joy/Sheet';
-import Checkbox from '@mui/joy/Checkbox';
 import IconButton, { iconButtonClasses } from '@mui/joy/IconButton';
 import Typography from '@mui/joy/Typography';
 import Menu from '@mui/joy/Menu';
@@ -39,15 +38,16 @@ import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import { useMediaQuery } from '@mui/material';
 import Tooltip from '@mui/joy/Tooltip';
 import { FetchCustomerData, FetchManagerData } from '../../api/auth';
-import { useAppSelector } from '../../types/hooks.types';
+import { useAppDispatch, useAppSelector } from '../../types/hooks.types';
 import { Edit } from '@mui/icons-material';
 import SmartForm from '../common/form';
 import type { AnalysisTableProps } from '../../interfaces/analysis.interfaces';
 import type { Order } from '../../types/orders.types';
-import { ProductFormFields } from '../../configs/form_fields';
 import type { CustomerDataProp, ManagerDataProp } from '../../interfaces/users.interfaces';
+import {FetchProductData, UpdateProduct } from '../../api/products';
+import { useState, useEffect } from 'react';
+import { DeleteProductThunk} from '../../Slices/productSlice';
 
-// Define types for data items
 interface ProductItem {
   id: string | number;
   name?: string;
@@ -153,12 +153,13 @@ const TruncatedText = ({ text, maxLength = 30 }: { text: string; maxLength?: num
 interface RowMenuProps {
   onDelete: () => void;
   onView: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   showEdit: boolean;
   showDelete: boolean;
+  tableType: string;
 }
 
-function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete }: RowMenuProps) {
+function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete, tableType }: RowMenuProps) {
   return (
     <Dropdown>
       <MenuButton
@@ -172,7 +173,8 @@ function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete }: RowMenuProp
           <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1 }} />
           View
         </MenuItem>
-        {showEdit && (
+        {/* Only show Edit for products table */}
+        {showEdit && tableType === 'products' && onEdit && (
           <MenuItem onClick={onEdit}>
             <Edit fontSize="small" sx={{ mr: 1 }} />
             Edit
@@ -198,13 +200,14 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     showFilters = true, 
     showPagination = true,
     onRowClick,
-    onSelectionChange 
   } = props;
 
+  
   const { role, id } = useAppSelector((state) => state.user);
+  const { categories, brands } = useAppSelector((state) => state.products);
+  console.log('Categories in AnalysisTable:', categories);
   const isMobile = useMediaQuery('(max-width: 600px)');
   const isTablet = useMediaQuery('(max-width: 960px)');
-
   // State
   const [order, setOrder] = React.useState<Order>('desc');
   const [orderBy, setOrderBy] = React.useState<string>('id');
@@ -229,7 +232,134 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [rowToDelete, setRowToDelete] = React.useState<string | number | null>(null);
   const [rowToEdit, setRowToEdit] = React.useState<any>(null);
+  const [editFormData, setEditFormData] = React.useState<any>({
+    product_image: undefined,
+    product_name: undefined,
+    product_categories: categories || [],
+    product_brands: brands || [],
+    product_description: undefined,
+    product_price: undefined,
+    product_stock: 0,
+    product_discount: 0,
+    product_status: undefined
+  });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [curr_pdt_id, setCurrPdtId] = useState<string | number | null>(null);
+  const dispatch = useAppDispatch();
 
+
+const ProductFormFields = [
+{ name: 'product_name', type: 'text', placeholder: 'Product Name',componentType: "input",required:true,showLabels:true, validation:{minLength:10,maxLength:50,message:'Product name must be between 10 and 50 characters'} } ,
+{ name: 'product_description', type: 'text', placeholder: 'Product Description',componentType: "textarea",showLabels:true, validation:{minLength:10,maxLength:100,message:'Product description must be between 10 and 100 characters'}}  , 
+{ name: 'product_price', type: 'number', placeholder: 'Product Price',componentType: "input" ,required:true,showLabels:true,validation:{min:0,message:'Product price cannot be negative'}} ,  
+{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories',componentType: "select" ,required:true,showLabels:true,options:categories} ,   
+{ name: 'product_brands', type: 'text', placeholder: 'Select All Product Brands',componentType: "select",required:true,showLabels:true,options:brands} ,   
+{ name: 'product_discount', type: 'number', placeholder: 'Product Discount, if any',componentType: "input",showLabels:true, validation:{min:0,max:100,message:'Product discount must be between 0 and 100'} } ,   
+{ name: 'product_status', type: 'text', placeholder: 'Select Product Status',componentType: "select",options:[
+  {
+  label:'Brand New', value:'Brand New'
+},
+  {
+  label:'Uk Used', value:'Uk Used'
+}
+],showLabels:true } ,     
+]
+
+
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!curr_pdt_id) return;
+    
+      
+      try {
+        const response = await FetchProductData(curr_pdt_id as string | number);
+        if (response) {
+          await setEditFormData({
+            product_image: response.image || undefined,
+            product_name: response.name || undefined,
+            product_categories:categories,
+            product_brands:brands,
+            product_description: response.description || undefined,
+            product_price: response.price || undefined,
+            product_stock: response.stock || 0,
+            product_discount: response.discount || 0,
+            product_status: response.status || undefined
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching product data:', err);
+        showSnackbar('Failed to load product data', 'danger');
+      }
+    };
+
+    fetchProductData();
+  }, [curr_pdt_id]);
+
+  // Handle product update
+  const handleProductUpdate = async () => {
+    if (!rowToEdit?.id) {
+      showSnackbar('No product selected for editing', 'danger');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await UpdateProduct(rowToEdit.id, editFormData);
+      
+      if (response.success) {
+        showSnackbar('Product updated successfully', 'success');
+        setEditModalOpen(false);
+        
+        // Refresh the data
+        setCurrPdtId(null);
+        setRowToEdit(null);
+        
+        // Refresh the table data
+        const refreshedData = data.map(item => 
+          item.id === rowToEdit.id ? { ...item, ...editFormData } : item
+        );
+        setData(refreshedData);
+      } else {
+        showSnackbar(response.message || 'Failed to update product', 'danger');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      showSnackbar('An error occurred while updating', 'danger');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle product delete
+  const handleProductDelete = async () => {
+    if (!rowToDelete) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await dispatch(DeleteProductThunk(rowToDelete));
+
+      if ((response?.payload as any)?.status === 204) {
+        setSelected(selected.filter(id => id !== rowToDelete));
+        setData(prev => prev.filter(item => item.id !== rowToDelete));
+        showSnackbar(`Product deleted successfully`, 'success');
+        setDeleteConfirmOpen(false);
+        setRowToDelete(null);
+        location.reload();
+
+      } else {
+        showSnackbar('Failed to delete product', 'danger');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      showSnackbar('An error occurred while deleting', 'danger');
+    } finally {
+      setRowToDelete(null);
+      setDeleteConfirmOpen(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Main data fetch effect
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -356,7 +486,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     if ((role === 'manager' || role === 'customer') && (role !== 'customer' || id)) {
       fetchData();
     }
-  }, [type, role, id]);
+  }, [type, role, id, data.length]);
 
   // Filtered data
   const filteredRows = React.useMemo(() => {
@@ -423,22 +553,6 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
       setOrder('asc');
     }
   };
-
-  const handleSelectAll = (checked: boolean) => {
-    const newSelected = checked ? paginatedRows.map(row => row.id) : [];
-    setSelected(newSelected);
-    onSelectionChange?.(newSelected);
-    showSnackbar(checked ? 'All items selected' : 'Selection cleared', 'neutral');
-  };
-
-  const handleSelectRow = (id: string | number, checked: boolean) => {
-    const newSelected = checked 
-      ? [...selected, id] 
-      : selected.filter(itemId => itemId !== id);
-    setSelected(newSelected);
-    onSelectionChange?.(newSelected);
-  };
-
   const handleFilterChange = (key: keyof typeof filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -465,22 +579,13 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
 
   const handleEdit = (row: any) => {
     setRowToEdit(row);
+    setCurrPdtId(row.id);
     setEditModalOpen(true);
   };
 
   const handleDeleteClick = (id: string | number) => {
     setRowToDelete(id);
     setDeleteConfirmOpen(true);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (rowToDelete) {
-      setSelected(selected.filter(id => id !== rowToDelete));
-      setData(prev => prev.filter(item => item.id !== rowToDelete));
-      showSnackbar(`Item #${rowToDelete} deleted`, 'danger');
-      setDeleteConfirmOpen(false);
-      setRowToDelete(null);
-    }
   };
 
   // Column configurations based on type
@@ -497,6 +602,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
         ];
       case 'products':
         return [
+          { field: 'image', header: 'Image', width: 250, sortable: true,sticky: true },
           { field: 'name', header: 'Product Name', width: 250, sortable: true },
           { field: 'category', header: 'Category', width: 150, sortable: true },
           { field: 'price', header: 'Price', width: 120, sortable: true },
@@ -518,8 +624,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     }
   };
 
-  // Responsive column configurations
-  const getResponsiveColumns = () => {
+ const getResponsiveColumns = () => {
     const allColumns = getColumns();
     
     if (isMobile) {
@@ -527,32 +632,32 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
         case 'orders':
           return allColumns.filter(col => 
             ['order_number', 'status', 'total_amount'].includes(col.field)
-          );
+          ).map(col => ({ ...col, sticky: col.field === 'order_number' }));
         case 'products':
           return allColumns.filter(col => 
-            ['name', 'status', 'price'].includes(col.field)
-          );
+            ['image', 'name', 'status', 'price'].includes(col.field)
+          ).map(col => ({ ...col, sticky: col.field === 'image' }));
         case 'customers':
           return allColumns.filter(col => 
             ['first_name', 'email', 'total_spent'].includes(col.field)
-          );
+          ).map(col => ({ ...col, sticky: col.field === 'first_name' }));
         default:
-          return allColumns.slice(0, 3);
+          return allColumns.slice(0, 3).map((col, index) => ({ ...col, sticky: index === 0 }));
       }
     } else if (isTablet) {
       switch (type) {
         case 'orders':
           return allColumns.filter(col => 
             !['payment_method'].includes(col.field)
-          );
+          ).map(col => ({ ...col, sticky: col.field === 'order_number' }));
         case 'products':
           return allColumns.filter(col => 
             !['brand'].includes(col.field)
-          );
+          ).map(col => ({ ...col, sticky: col.field === 'image' }));
         case 'customers':
           return allColumns.filter(col => 
             !['phone_number'].includes(col.field)
-          );
+          ).map(col => ({ ...col, sticky: col.field === 'first_name' }));
         default:
           return allColumns;
       }
@@ -574,7 +679,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
             {row.status?.replace('_', ' ').toUpperCase() || 'N/A'}
           </Chip>
         );
-      
+
       case 'customer_name':
         return (
           <Box>
@@ -612,13 +717,14 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
         );
 
       case 'stock_quantity':
+      case 'stock':
         return (
           <Typography 
             level="body-sm" 
-            color={row.stock_quantity < 10 ? 'danger' : row.stock_quantity < 50 ? 'warning' : 'success'}
+            color={row[field] < 10 ? 'danger' : row[field] < 50 ? 'warning' : 'success'}
             fontWeight="md"
           >
-            {row.stock_quantity}
+            {row[field]}
           </Typography>
         );
 
@@ -636,6 +742,35 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
           </Typography>
         );
 
+      case 'image':
+        return (
+          <Box 
+            sx={{ 
+              width: 80, 
+              height: 80, 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 1,
+              bgcolor: '#f5f5f5',
+              overflow: 'hidden'
+            }}
+          >
+            <img
+              src={row.image || '/placeholder-image.png'}
+              alt={row.name || 'Product'}
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover'
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder-image.png';
+              }}
+            />
+          </Box>
+        );
+
       default:
         return <Typography level="body-sm">{row[field] || '-'}</Typography>;
     }
@@ -645,8 +780,8 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
   const renderResponsiveCell = (row: any, field: string) => {
     const content = renderCell(row, field);
     
-    // Add truncation for text fields
-    if (['name', 'customer_name', 'email', 'order_number', 'first_name', 'last_name'].includes(field)) {
+    // Add truncation for text fields (but not for image)
+    if (field !== 'image' && ['name', 'customer_name', 'email', 'order_number', 'first_name', 'last_name'].includes(field)) {
       return <TruncatedText text={String(row[field] || '')} maxLength={isMobile ? 15 : 25} />;
     }
     
@@ -654,6 +789,9 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
   };
 
   const columns = getResponsiveColumns();
+  
+  // Calculate total width for table
+  const totalWidth = columns.reduce((sum, col) => sum + (col.width || 100), 80); // +80 for actions column
 
   return (
     <React.Fragment>
@@ -853,6 +991,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
             overflow: 'auto',
             minHeight: 0,
             maxHeight: isMobile ? 'calc(100vh - 250px)' : 'calc(100vh - 300px)',
+            position: 'relative',
             '&::-webkit-scrollbar': {
               height: 8,
               width: 8,
@@ -873,44 +1012,28 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
               '--TableRow-hoverBackground': 'var(--joy-palette-background-level1)',
               '--TableCell-paddingY': isMobile ? '2px' : '4px',
               '--TableCell-paddingX': isMobile ? '4px' : '8px',
-              minWidth: isMobile ? '100%' : 'auto',
+              minWidth: totalWidth,
+              borderCollapse: 'separate',
+              borderSpacing: 0,
             }}
           >
             <thead>
               <tr>
-                <th style={{ 
-                  width: isMobile ? 32 : 48, 
-                  textAlign: 'center', 
-                  padding: isMobile ? '8px 2px' : '12px 6px',
-                  position: 'sticky',
-                  left: 0,
-                  backgroundColor: 'var(--joy-palette-background-level1)',
-                  zIndex: 3,
-                }}>
-                  <Checkbox
-                    size="sm"
-                    indeterminate={selected.length > 0 && selected.length < paginatedRows.length}
-                    checked={selected.length === paginatedRows.length && paginatedRows.length > 0}
-                    onChange={(event) => handleSelectAll(event.target.checked)}
-                    disabled={paginatedRows.length === 0}
-                    color={selected.length > 0 ? 'primary' : undefined}
-                    sx={{ verticalAlign: 'text-bottom' }}
-                  />
-                </th>
-                {columns.map((column, index) => (
+                {columns.map((column, _index) => (
                   <th 
                     key={column.field}
                     style={{ 
-                      width: isMobile ? 'auto' : column.width, 
+                      width: column.width,
+                      minWidth: column.width,
                       padding: isMobile ? '8px 4px' : '12px 6px',
                       cursor: column.sortable ? 'pointer' : 'default',
-                      minWidth: isMobile ? 80 : 'auto',
-                      maxWidth: isMobile ? 120 : column.width,
+            
                       whiteSpace: 'nowrap',
-                      position: index === 0 ? 'sticky' : 'static',
-                      left: index === 0 ? (isMobile ? 32 : 48) : 'auto',
-                      backgroundColor: index === 0 ? 'var(--joy-palette-background-level1)' : 'transparent',
-                      zIndex: index === 0 ? 2 : 1,
+                      position: 'sticky',
+                      left: column.sticky ? 0 : 'auto',
+                      backgroundColor: 'white',
+                      zIndex: column.sticky ? 10 : (column.sortable ? 2 : 1),
+                      borderRight: column.sticky ? '1px solid rgba(0,0,0,0.1)' : 'none',
                     }}
                     onClick={() => column.sortable && handleSort(column.field)}
                   >
@@ -934,12 +1057,14 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
                   </th>
                 ))}
                 <th style={{ 
-                  width: isMobile ? 60 : 80, 
+                  width: 80,
+                  minWidth: 80,
                   padding: isMobile ? '8px 4px' : '12px 6px',
                   position: 'sticky',
                   right: 0,
                   backgroundColor: 'var(--joy-palette-background-level1)',
-                  zIndex: 3,
+                  zIndex: 10,
+                  borderLeft: '1px solid rgba(0,0,0,0.1)',
                 }}>
                   Actions
                 </th>
@@ -948,7 +1073,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
             <tbody>
               {paginatedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 2} style={{ textAlign: 'center', padding: '40px' }}>
+                  <td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: '40px' }}>
                     <Typography level="body-lg">No {type} found</Typography>
                     <Button size="sm" variant="plain" onClick={clearFilters} sx={{ mt: 1 }}>
                       Clear filters
@@ -962,37 +1087,21 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
                     onClick={() => onRowClick && onRowClick(row)}
                     style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                   >
-                    <td style={{ 
-                      textAlign: 'center',
-                      padding: isMobile ? '4px 2px' : '8px 6px',
-                      position: 'sticky',
-                      left: 0,
-                      backgroundColor: 'white',
-                      zIndex: 1,
-                    }} 
-                    onClick={(e) => e.stopPropagation()}
-                    >
-                      <Checkbox
-                        size="sm"
-                        checked={selected.includes(row.id)}
-                        color={selected.includes(row.id) ? 'primary' : undefined}
-                        onChange={(event) => handleSelectRow(row.id, event.target.checked)}
-                        sx={{ verticalAlign: 'text-bottom' }}
-                      />
-                    </td>
-                    {columns.map((column, index) => (
+                    {columns.map((column, _index) => (
                       <td 
                         key={column.field}
                         style={{
                           padding: isMobile ? '4px 4px' : '8px 6px',
                           maxWidth: column.width,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          position: index === 0 ? 'sticky' : 'static',
-                          left: index === 0 ? (isMobile ? 32 : 48) : 'auto',
-                          backgroundColor: index === 0 ? 'white' : 'transparent',
-                          zIndex: index === 0 ? 1 : 'auto',
+                          minWidth: column.width,
+                          overflow: column.field === 'image' ? 'visible' : 'hidden',
+                          textOverflow: column.field === 'image' ? 'clip' : 'ellipsis',
+                          whiteSpace: column.field === 'image' ? 'normal' : 'nowrap',
+                          position: column.sticky ? 'sticky' : 'static',
+                          left: column.sticky ? 0 : 'auto',
+                          backgroundColor: column.sticky ? 'white' : 'transparent',
+                          zIndex: column.sticky ? 5 : 1,
+                          borderRight: column.sticky ? '1px solid rgba(0,0,0,0.05)' : 'none',
                         }}
                       >
                         {renderResponsiveCell(row, column.field)}
@@ -1004,7 +1113,9 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
                         position: 'sticky',
                         right: 0,
                         backgroundColor: 'white',
-                        zIndex: 1,
+                        zIndex: 5,
+                        borderLeft: '1px solid rgba(0,0,0,0.05)',
+                        minWidth: 80,
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1016,10 +1127,11 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
                       }}>
                         <RowMenu
                           onView={() => handleView(row)}
-                          onEdit={() => handleEdit(row)}
+                          onEdit={type === 'products' ? () => handleEdit(row) : undefined}
                           onDelete={() => handleDeleteClick(row.id)}
                           showEdit={role === 'manager'}
                           showDelete={role === 'manager'}
+                          tableType={type}
                         />
                       </Box>
                     </td>
@@ -1232,54 +1344,62 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
           sx={{ width: isMobile ? '90%' : 'auto' }}
         >
           <Typography id="delete-modal" level="h4" color="danger">
-            Confirm Delete
+            Confirm Delete {type === 'products' ? 'Product' : 'Item'}
           </Typography>
           <Divider sx={{ my: 2 }} />
           <Typography level="body-md">
-            Are you sure you want to delete this item? This action cannot be undone.
+            Are you sure you want to delete this {type === 'products' ? 'product' : 'item'}? This action cannot be undone.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
             <Button variant="plain" color="neutral" onClick={() => setDeleteConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button variant="solid" color="danger" onClick={handleDeleteConfirm}>
-              Delete
+            <Button 
+              variant="solid" 
+              color="danger" 
+              loading={isSubmitting}
+              onClick={handleProductDelete}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Deleting...' : 'Delete'}
             </Button>
           </Box>
         </ModalDialog>
       </Modal>
 
-      {/* Edit Product Modal */}
-      <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)}>
-        <ModalDialog
-          aria-labelledby="edit-modal"
-          layout="center"
-          size="md"
-          sx={{ width: isMobile ? '90%' : 500 }}
-        >
-          <ModalClose />
-          <Typography id="edit-modal" level="h4" color="primary">
-            Edit Product
-          </Typography>
-          <Divider sx={{ my: 2 }} />
-          <SmartForm 
-            formControls={ProductFormFields}
-            isLoading={false}
-            buttonText="Update Product"
-            formData={rowToEdit || {}}
-            setFormData={() => {}}
-            onSubmit={() => {}}
-            variant="solid"
-            isBtnDisabled={false}
-            message="Updating..."
-          />
-          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
-            <Button variant="plain" color="neutral" onClick={() => setEditModalOpen(false)}>
-              Cancel
-            </Button>
-          </Box>
-        </ModalDialog>
-      </Modal>
+      {/* Edit Product Modal - Only for products */}
+      {type === 'products' && (
+        <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)}>
+          <ModalDialog
+            aria-labelledby="edit-modal"
+            layout="center"
+            size="md"
+            sx={{ width: isMobile ? '90%' : 500 }}
+          >
+            <ModalClose />
+            <Typography id="edit-modal" level="h4" color="primary">
+              Edit Product
+            </Typography>
+            <Divider sx={{ my: 2 }} />
+            <SmartForm 
+              formControls={ProductFormFields}
+              isLoading={isSubmitting}
+              buttonText="Update Product"
+              formData={editFormData}
+              setFormData={setEditFormData}
+              onSubmit={handleProductUpdate}
+              variant="solid"
+              isBtnDisabled={isSubmitting}
+              message="Updating..."
+            />
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
+              <Button variant="plain" color="neutral" onClick={() => setEditModalOpen(false)}>
+                Cancel
+              </Button>
+            </Box>
+          </ModalDialog>
+        </Modal>
+      )}
     </React.Fragment>
   );
 };

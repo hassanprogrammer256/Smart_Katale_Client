@@ -2,6 +2,8 @@
 import { type PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { FetchAllProducts, SearchProduct } from '../api/products';
 import type { FetchProductsResponse, ProductsState, Product } from '../types/product.types';
+import { API_URL } from '../configs';
+import axios from 'axios';
 
 // Define the initial state
 const Initial: ProductsState = {
@@ -39,6 +41,30 @@ export const SearchWithSuggestionsThunk = createAsyncThunk(
   async (search_term: string, _) => {
     const response = await SearchProduct(search_term);
     return response;
+  }
+);
+
+export const DeleteProductThunk = createAsyncThunk(
+  'products/delete',
+  async (product_id: string|number, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(`${API_URL}/products/${product_id}/`);
+      return response;
+    } catch (error) {
+      return rejectWithValue('Failed to delete product');
+    }
+  }
+);
+
+export const UpdateProductThunk = createAsyncThunk(
+  'products/update',
+  async ({ product_id, updatedData }: { product_id: string|number, updatedData: Partial<Product> }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`${API_URL}/products/${product_id}/`, updatedData);
+      return response;
+    } catch (error) {
+      return rejectWithValue('Failed to update product');
+    }
   }
 );
 
@@ -308,7 +334,25 @@ const Products = createSlice({
       })
       .addCase(SearchWithSuggestionsThunk.rejected, (state) => {
         state.loading = false;
-      });
+      })
+      // Handle DeleteProductThunk
+      .addCase(DeleteProductThunk.pending, (state) => {
+        state.loading = true;})
+      .addCase(DeleteProductThunk.fulfilled, (state, action) => {
+        console.log('Delete response:', action.payload);
+        state.loading = false;
+        const deletedProductId = action.payload?.data?.id;
+        if (deletedProductId) {
+          state.products = state.products?.filter(product => product.id !== deletedProductId) || null;
+          state.filteredProducts = state.filteredProducts?.filter(product => product.id !== deletedProductId) || null;
+        }
+      })
+      .addCase(DeleteProductThunk.rejected, (state) => {
+        state.loading = false;
+      })
+      
+      
+      ;
   }
 });
 

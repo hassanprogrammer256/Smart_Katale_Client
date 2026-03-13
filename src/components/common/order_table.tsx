@@ -17,7 +17,6 @@ import Select from '@mui/joy/Select';
 import Option from '@mui/joy/Option';
 import Table from '@mui/joy/Table';
 import Sheet from '@mui/joy/Sheet';
-import Checkbox from '@mui/joy/Checkbox';
 import IconButton, { iconButtonClasses } from '@mui/joy/IconButton';
 import Typography from '@mui/joy/Typography';
 import Menu from '@mui/joy/Menu';
@@ -81,7 +80,6 @@ function RowMenu() {
 }
 export default function OrderTable() {
   const [order, setOrder] = React.useState<Order>('desc');
-  const [selected, setSelected] = React.useState<readonly string[]>([]);
   const [open, setOpen] = React.useState(false);
   const renderFilters = () => (
     <React.Fragment>
@@ -202,26 +200,6 @@ export default function OrderTable() {
         >
           <thead>
             <tr>
-              <th style={{ width: 48, textAlign: 'center', padding: '12px 6px' }}>
-                <Checkbox
-                  size="sm"
-                  indeterminate={
-                    selected.length > 0 && selected.length !== OrderRows.length
-                  }
-                  checked={selected.length === OrderRows.length}
-                  onChange={(event) => {
-                    setSelected(
-                      event.target.checked ? OrderRows.map((row) => row.id) : [],
-                    );
-                  }}
-                  color={
-                    selected.length > 0 || selected.length === OrderRows.length
-                      ? 'primary'
-                      : undefined
-                  }
-                  sx={{ verticalAlign: 'text-bottom' }}
-                />
-              </th>
               <th style={{ width: 120, padding: '12px 6px' }}>
                 <Link
                   underline="none"
@@ -246,9 +224,9 @@ export default function OrderTable() {
                   Invoice
                 </Link>
               </th>
-              <th style={{ width: 140, padding: '12px 6px' }}>Date</th>
-              <th style={{ width: 140, padding: '12px 6px' }}>Status</th>
-              <th style={{ width: 240, padding: '12px 6px' }}>Customer</th>
+              <th style={{ width: 140, padding: '12px 6px',position: 'sticky', left: 0 }}>Date</th>
+              <th style={{ width: 140, padding: '12px 6px',position: 'sticky', left: 0 }}>Status</th>
+              <th style={{ width: 240, padding: '12px 6px',position: 'sticky', left: 0 }}>Customer</th>
               {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
               <th style={{ width: 140, padding: '12px 6px' }}> </th>
             </tr>
@@ -256,22 +234,6 @@ export default function OrderTable() {
           <tbody>
             {[...OrderRows].sort(getComparator(order, 'id')).map((row) => (
               <tr key={row.id}>
-                <td style={{ textAlign: 'center', width: 120 }}>
-                  <Checkbox
-                    size="sm"
-                    checked={selected.includes(row.id)}
-                    color={selected.includes(row.id) ? 'primary' : undefined}
-                    onChange={(event) => {
-                      setSelected((ids) =>
-                        event.target.checked
-                          ? ids.concat(row.id)
-                          : ids.filter((itemId) => itemId !== row.id),
-                      );
-                    }}
-                    slotProps={{ checkbox: { sx: { textAlign: 'left' } } }}
-                    sx={{ verticalAlign: 'text-bottom' }}
-                  />
-                </td>
                 <td>
                   <Typography level="body-xs">{row.id}</Typography>
                 </td>

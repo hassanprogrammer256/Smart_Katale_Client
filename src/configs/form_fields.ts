@@ -1,45 +1,31 @@
+
+
+
 export const ContactUsFooterFormFields = [
-{ name: 'customer_name', type: 'text', placeholder: 'Full Names',componentType: "input" },
-{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input" } , 
-{ name: 'subject', type: 'text', placeholder: 'Subject',componentType: "input" },  
-{ name: 'message', type: 'text', placeholder: 'Write message here.....',componentType: "textarea" }    
-]
-export const ProductFormFields = [
-{ name: 'product_name', type: 'text', placeholder: 'Product Name',componentType: "input",required:true },
-{ name: 'product_description', type: 'text', placeholder: 'Product Description',componentType: "input" ,required:true} , 
-{ name: 'product_price', type: 'number', placeholder: 'Product Price',componentType: "input" ,required:true},  
-{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories',componentType: "select" ,required:true} ,   
-{ name: 'product_brands', type: 'text', placeholder: 'Select All Product Brands',componentType: "select",required:true } ,   
-{ name: 'product_discount', type: 'number', placeholder: 'Product Discount, if any',componentType: "input" } ,   
-{ name: 'product_status', type: 'text', placeholder: 'Select Product Status',componentType: "select",options:[
-  {
-  label:'Brand New', value:'Brand New'
-},
-  {
-  label:'Uk Used', value:'Uk Used'
-}
-] } ,   
-{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories',componentType: "select" } ,   
-{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories',componentType: "select" } ,   
+{ name: 'customer_name', type: 'text', placeholder: 'Full Names',componentType: "input",required:true,showLabels:true },
+{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input",required:true,showLabels:true, validation:{pattern:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message:'Invalid email Address'} } , 
+{ name: 'subject', type: 'text', placeholder: 'Subject',componentType: "input",required:true,showLabels:true },  
+{ name: 'message', type: 'text', placeholder: 'Write message here.....',componentType: "textarea",required:true,showLabels:true }    
 ]
 
+
 export const LoginFormFields = [
-{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input" },
+{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input",validation:{pattern:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message:'Invalid email Address'} } ,
 { name: 'password', type: 'password', placeholder: 'Password',componentType: "input"},    
 ]
 export const RegisterFormFields = [
-{ name: 'first_name', type: 'text', placeholder: 'First Name',componentType: "input" , required: true },
-{ name: 'last_name', type: 'text', placeholder: 'Last Name',componentType: "input"  , required: true},
-{ name: 'phone_number', type: 'text', placeholder: 'Phone Number',componentType: "input" , required: true },
-{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input"  , required: true},
-{ name: 'password', type: 'password', placeholder: 'Create Password',componentType: "input" , required: true},    
+{ name: 'first_name', type: 'text', placeholder: 'First Name',componentType: "input" , required: true, validation:{minLength:5,maxLength:30,message:'First name must be between 5 and 30 characters'} } ,
+{ name: 'last_name', type: 'text', placeholder: 'Last Name',componentType: "input"  , required: true, validation:{minLength:5,maxLength:30,message:'Last name must be between 5 and 30 characters'} } ,
+{ name: 'phone_number', type: 'text', placeholder: 'Phone Number',componentType: "input" , required: true, validation:{minLength:10,maxLength:15,message:'Phone number must be between 10 and 15 characters'} },
+{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input"  , required: true, validation:{pattern:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message:'Invalid email Address'} },
+{ name: 'password', type: 'password', placeholder: 'Create Password',componentType: "input" , required: true,validation:{minLength:8,message:'Password must be at least 8 characters long'}},    
 ]
 export const UpdateProfileFormFields = [
-{ name: 'first_name', type: 'text', placeholder: 'First Name',componentType: "input" },
-{ name: 'last_name', type: 'text', placeholder: 'Last Name',componentType: "input" },
-{ name: 'phone_number', type: 'text', placeholder: 'Phone Number',componentType: "input" },
-{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input" },
-{ name: 'password', type: 'text', placeholder: 'Change Password',componentType: "input"},
+{ name: 'first_name', type: 'text', placeholder: 'First Name',componentType: "input",validation:{minLength:5,maxLength:30,message:'First name must be between 5 and 30 characters'} } ,
+{ name: 'last_name', type: 'text', placeholder: 'Last Name',componentType: "input",validation:{minLength:5,maxLength:30,message:'Last name must be between 5 and 30 characters'} } ,
+{ name: 'phone_number', type: 'text', placeholder: 'Phone Number',componentType: "input",validation:{minLength:10,maxLength:15,message:'Phone number must be between 10 and 15 characters'} } ,
+{ name: 'email', type: 'email', placeholder: 'Email Address',componentType: "input",validation:{pattern:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message:'Invalid email Address'} } ,
+{ name: 'password', type: 'password', placeholder: 'Change Password',componentType: "input",validation:{minLength:8,message:'Password must be at least 8 characters long'}},
 ]
 export const UnAuthUserCheckOutFormFields = [
   {
@@ -49,6 +35,7 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your first name',
     required: true,
+    validation:{minLength:5,maxLength:30,message:'First name must be between 5 and 30 characters'}
   },
   {
     name: 'last_name',
@@ -57,6 +44,7 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your last name',
     required: true,
+    validation:{minLength:5,maxLength:30,message:'Last name must be between 5 and 30 characters'}
   },
   {
     name: 'email',
@@ -65,6 +53,7 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'email',
     placeholder: 'you@example.com',
     required: true,
+    validation:{pattern:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message:'Invalid email Address'}
   },
   {
     name: 'phone_number',
@@ -73,6 +62,7 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your phone number (10 digits)',
     required: true,
+    validation:{minLength:10,maxLength:15,message:'Phone number must be between 10 and 15 characters'}
   },
   {
     name: 'payment_method',
@@ -105,6 +95,8 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your city',
     required: true,
+    validation:{minLength:3,maxLength:100,message:'City must be between 3 and 100 characters'}
+
   },
   {
     name: 'town',
@@ -113,6 +105,7 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your town',
     required: true,
+    validation:{minLength:3,maxLength:100,message:'Town must be between 3 and 100 characters'}
   },
   {
     name: 'address',
@@ -121,17 +114,19 @@ export const UnAuthUserCheckOutFormFields = [
     componentType: 'input',
     placeholder: 'Enter your current Address',
     required: true,
+    validation:{minLength:5,maxLength:200,message:'Address must be between 5 and 200 characters'}
+
   },
 ];
 export const UpdateAddressFormFields = [
-{ name: 'city', type: 'text', placeholder: 'City',componentType: "input" },
-{ name: 'town', type: 'text', placeholder: 'Town',componentType: "input" },
-{ name: 'addressline1', type: 'text', placeholder: 'Address Line 1',componentType: "input" },
-{ name: 'addressline2', type: 'text', placeholder: 'Address Line 2 (Optional)',componentType: "input" },  
+{ name: 'city', type: 'text', placeholder: 'City',componentType: "input",validation:{minLength:3,maxLength:100,message:'City must be between 3 and 100 characters'} },
+{ name: 'town', type: 'text', placeholder: 'Town',componentType: "input",validation:{minLength:3,maxLength:100,message:'Town must be between 3 and 100 characters'} },
+{ name: 'addressline1', type: 'text', placeholder: 'Address Line 1',componentType: "input",validation:{minLength:5,maxLength:200,message:'Address Line 1 must be between 5 and 200 characters'} },
+{ name: 'addressline2', type: 'text', placeholder: 'Address Line 2 (Optional)',componentType: "input",validation:{minLength:5,maxLength:200,message:'Address Line 2 must be between 5 and 200 characters'} },  
 ]
 
 export const UpdatePaymentCardFormFields = [
-{ name: 'card_number', type: 'text', placeholder: 'Card Number',componentType: "input" },
-{ name: 'expiry', type: 'text', placeholder: 'Expiry Date (MM/YY)',componentType: "input" },
-{ name: 'cvv', type: 'text', placeholder: 'CVV Code',componentType: "input" },  
+{ name: 'card_number', type: 'text', placeholder: 'Card Number',componentType: "input",validation:{minLength:16,maxLength:16,message:'Card number must be 16 characters long'} },
+{ name: 'expiry', type: 'text', placeholder: 'Expiry Date (MM/YY)',componentType: "input",validation:{pattern:/^(0[1-9]|1[0-2])\/?([0-9]{2})$/, message:'Invalid expiry date'} },
+{ name: 'cvv', type: 'text', placeholder: 'CVV Code',componentType: "input",validation:{minLength:3,maxLength:4,message:'CVV must be between 3 and 4 characters'} },  
 ]

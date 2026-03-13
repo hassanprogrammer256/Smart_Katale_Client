@@ -64,7 +64,7 @@ export const PaymentCardFormFields = [
     type: 'text',
     placeholder: 'Enter card number',
     required: true,
-    validation: (value: string) => value.length >= 16 || 'Card number must be 16 digits'
+    validation: {minLength:16,maxLength:16,message:'Card number must be 16 characters long'}
   },
   {
     name: 'card_holder_name',
@@ -86,7 +86,7 @@ export const PaymentCardFormFields = [
     type: 'password',
     placeholder: 'Enter CVV',
     required: true,
-    validation: (value: string) => value.length >= 3 || 'CVV must be 3-4 digits'
+    validation: {minLength:3,maxLength:4,message:'CVV must be 3-4 digits'}
   },
   {
     name: 'is_default',

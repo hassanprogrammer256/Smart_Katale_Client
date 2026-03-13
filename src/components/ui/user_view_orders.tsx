@@ -252,8 +252,8 @@ const ProductFormFields = [
 { name: 'product_name', type: 'text', placeholder: 'Product Name',componentType: "input",required:true,showLabels:true, validation:{minLength:10,maxLength:50,message:'Product name must be between 10 and 50 characters'} } ,
 { name: 'product_description', type: 'text', placeholder: 'Product Description',componentType: "textarea",showLabels:true, validation:{minLength:10,maxLength:100,message:'Product description must be between 10 and 100 characters'}}  , 
 { name: 'product_price', type: 'number', placeholder: 'Product Price',componentType: "input" ,required:true,showLabels:true,validation:{min:0,message:'Product price cannot be negative'}} ,  
-{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories',componentType: "select" ,required:true,showLabels:true,options:categories} ,   
-{ name: 'product_brands', type: 'text', placeholder: 'Select All Product Brands',componentType: "select",required:true,showLabels:true,options:brands} ,   
+{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories', componentType: "select", required: true, showLabels: true, options: [{ value: 'All Categories', label: 'All Categories' }, ...(categories ?? []).map((cat: string) => ({ value: cat, label: cat }))] } ,   
+{ name: 'product_brands', type: 'text', placeholder: 'Select All Product Brands', componentType: "select", required: true, showLabels: true, options: [{ value: 'All Brands', label: 'All Brands' }, ...(brands ?? []).map((brand: string) => ({ value: brand, label: brand }))] } ,   
 { name: 'product_discount', type: 'number', placeholder: 'Product Discount, if any',componentType: "input",showLabels:true, validation:{min:0,max:100,message:'Product discount must be between 0 and 100'} } ,   
 { name: 'product_status', type: 'text', placeholder: 'Select Product Status',componentType: "select",options:[
   {

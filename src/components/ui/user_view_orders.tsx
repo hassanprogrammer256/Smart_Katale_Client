@@ -46,7 +46,7 @@ import type { Order } from '../../types/orders.types';
 import type { CustomerDataProp, ManagerDataProp } from '../../interfaces/users.interfaces';
 import {FetchProductData, UpdateProduct } from '../../api/products';
 import { useState, useEffect } from 'react';
-import { DeleteProductThunk} from '../../Slices/productSlice';
+import { DeleteProductThunk, FetchAllProductsThunk} from '../../Slices/productSlice';
 
 interface ProductItem {
   id: string | number;
@@ -205,7 +205,7 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
   
   const { role, id } = useAppSelector((state) => state.user);
   const { categories, brands } = useAppSelector((state) => state.products);
-  console.log('Categories in AnalysisTable:', categories);
+
   const isMobile = useMediaQuery('(max-width: 600px)');
   const isTablet = useMediaQuery('(max-width: 960px)');
   // State
@@ -227,108 +227,216 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     color: 'neutral' as ColorPaletteProp,
   });
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
-  const [detailModalOpen, setDetailModalOpen] = React.useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-  const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [rowToDelete, setRowToDelete] = React.useState<string | number | null>(null);
-  const [rowToEdit, setRowToEdit] = React.useState<any>(null);
-  const [editFormData, setEditFormData] = React.useState<any>({
-    product_image: undefined,
-    product_name: undefined,
-    product_categories: categories || [],
-    product_brands: brands || [],
-    product_description: undefined,
-    product_price: undefined,
-    product_stock: 0,
-    product_discount: 0,
-    product_status: undefined
-  });
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [curr_pdt_id, setCurrPdtId] = useState<string | number | null>(null);
-  const dispatch = useAppDispatch();
+const [detailModalOpen, setDetailModalOpen] = React.useState(false);
+const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+const [editModalOpen, setEditModalOpen] = React.useState(false);
+const [rowToDelete, setRowToDelete] = React.useState<string | number | null>(null);
+const [rowToEdit, setRowToEdit] = React.useState<any>(null);
+const [editFormData, setEditFormData] = React.useState<any>({
+  product_image: undefined,
+  product_name: '',
+  product_categories: '',
+  product_brands: '',
+  product_description: '',
+  product_price: '',
+  product_stock: 0,
+  product_discount: 0,
+  product_status: ''
+});
+const [isSubmitting, setIsSubmitting] = React.useState(false);
+const [curr_pdt_id, setCurrPdtId] = useState<string | number | null>(null);
+const [_formErrors, setFormErrors] = React.useState<Record<string, string>>({});
 
+
+const dispatch = useAppDispatch();
+
+useEffect(() => {
+  dispatch(FetchAllProductsThunk(2021));
+}, [dispatch, role]);
+
+// Create options for selects
+const categoryOptions = React.useMemo(() => {
+  const options = [{ value: '', label: 'Select a category' }];
+  if (categories && categories.length > 0) {
+    return [...options, ...categories.map((cat: string) => ({ value: cat, label: cat }))];
+  }
+  return options;
+}, [categories]);
+
+const brandOptions = React.useMemo(() => {
+  const options = [{ value: '', label: 'Select a brand' }];
+  if (brands && brands.length > 0) {
+    return [...options, ...brands.map((brand: string) => ({ value: brand, label: brand }))];
+  }
+  return options;
+}, [brands]);
 
 const ProductFormFields = [
-{ name: 'product_name', type: 'text', placeholder: 'Product Name',componentType: "input",required:true,showLabels:true, validation:{minLength:10,maxLength:50,message:'Product name must be between 10 and 50 characters'} } ,
-{ name: 'product_description', type: 'text', placeholder: 'Product Description',componentType: "textarea",showLabels:true, validation:{minLength:10,maxLength:100,message:'Product description must be between 10 and 100 characters'}}  , 
-{ name: 'product_price', type: 'number', placeholder: 'Product Price',componentType: "input" ,required:true,showLabels:true,validation:{min:0,message:'Product price cannot be negative'}} ,  
-{ name: 'product_categories', type: 'text', placeholder: 'Select All Product Categories', componentType: "select", required: true, showLabels: true, options: [{ value: 'All Categories', label: 'All Categories' }, ...(categories ?? []).map((cat: string) => ({ value: cat, label: cat }))] } ,   
-{ name: 'product_brands', type: 'text', placeholder: 'Select All Product Brands', componentType: "select", required: true, showLabels: true, options: [{ value: 'All Brands', label: 'All Brands' }, ...(brands ?? []).map((brand: string) => ({ value: brand, label: brand }))] } ,   
-{ name: 'product_discount', type: 'number', placeholder: 'Product Discount, if any',componentType: "input",showLabels:true, validation:{min:0,max:100,message:'Product discount must be between 0 and 100'} } ,   
-{ name: 'product_status', type: 'text', placeholder: 'Select Product Status',componentType: "select",options:[
-  {
-  label:'Brand New', value:'Brand New'
-},
-  {
-  label:'Uk Used', value:'Uk Used'
-}
-],showLabels:true } ,     
-]
-
-
-  useEffect(() => {
-    const fetchProductData = async () => {
-      if (!curr_pdt_id) return;
-    
-      
-      try {
-        const response = await FetchProductData(curr_pdt_id as string | number);
-        if (response) {
-          await setEditFormData({
-            product_image: response.image || undefined,
-            product_name: response.name || undefined,
-            product_categories:categories,
-            product_brands:brands,
-            product_description: response.description || undefined,
-            product_price: response.price || undefined,
-            product_stock: response.stock || 0,
-            product_discount: response.discount || 0,
-            product_status: response.status || undefined
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching product data:', err);
-        showSnackbar('Failed to load product data', 'danger');
-      }
-    };
-
-    fetchProductData();
-  }, [curr_pdt_id]);
-
-  // Handle product update
-  const handleProductUpdate = async () => {
-    if (!rowToEdit?.id) {
-      showSnackbar('No product selected for editing', 'danger');
-      return;
+   {
+    name: 'product_image',
+    type: 'file',
+    placeholder: 'Upload Product Image',
+    componentType: "file",
+    showLabels: true,
+    validation: {
+      fileTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+      maxSize: 5 * 1024 * 1024, // 5MB
+      message: 'Please upload a valid image file (jpg, png, gif, webp) under 5MB'
     }
+  },
+  { 
+    name: 'product_name', 
+    type: 'text', 
+    placeholder: 'Product Name',
+    componentType: "input",
+    required: true,
+    showLabels: true, 
+    validation: {
+      minLength: 10,
+      maxLength: 50,
+      message: 'Product name must be between 10 and 50 characters'
+    } 
+  },
+  { 
+    name: 'product_description', 
+    type: 'text', 
+    placeholder: 'Product Description',
+    componentType: "textarea",
+    showLabels: true, 
+    validation: {
+      minLength: 10,
+      maxLength: 100,
+      message: 'Product description must be between 10 and 100 characters'
+    }
+  },
+  { 
+    name: 'product_price', 
+    type: 'number', 
+    placeholder: 'Product Price',
+    componentType: "number",
+    required: true,
+    showLabels: true,
+    validation: {
+      min: 0,
+      message: 'Product price cannot be negative'
+    }
+  },
+  { 
+    name: 'product_categories', 
+    type: 'text', 
+    placeholder: 'Select Product Category',
+    componentType: "select",
+    required: true,
+    showLabels: true,
+    options: categoryOptions
+  },
+  { 
+    name: 'product_brands', 
+    type: 'text', 
+    placeholder: 'Select Product Brand',
+    componentType: "select",
+    required: true,
+    showLabels: true,
+    options: brandOptions
+  },
+  { 
+    name: 'product_discount', 
+    type: 'number', 
+    placeholder: 'Product Discount, if any',
+    componentType: "number",
+    showLabels: true,
+    validation: {
+      min: 0,
+      max: 100,
+      message: 'Product discount must be between 0 and 100'
+    }
+  },
+  { 
+    name: 'product_status', 
+    type: 'text', 
+    placeholder: 'Select Product Status',
+    componentType: "select",
+    options: [
+      { value: '', label: 'Select status' },
+      { value: 'Brand New', label: 'Brand New' },
+      { value: 'Uk Used', label: 'Uk Used' }
+    ],
+    showLabels: true
+  }
+];
 
-    setIsSubmitting(true);
+const isFormValid = () => {
+  for (const field of ProductFormFields) {
+    if ((!editFormData[field.name] || editFormData[field.name].toString().trim() === '' || editFormData[field.name] === 0) || editFormData[field.name] === undefined) {
+      return false;
+    }
+  }
+  return true;
+
+};
+
+useEffect(() => {
+  const fetchProductData = async () => {
+    if (!curr_pdt_id) return;
+    
     try {
-      const response = await UpdateProduct(rowToEdit.id, editFormData);
-      
-      if (response.success) {
-        showSnackbar('Product updated successfully', 'success');
-        setEditModalOpen(false);
-        
-        // Refresh the data
-        setCurrPdtId(null);
-        setRowToEdit(null);
-        
-        // Refresh the table data
-        const refreshedData = data.map(item => 
-          item.id === rowToEdit.id ? { ...item, ...editFormData } : item
-        );
-        setData(refreshedData);
-      } else {
-        showSnackbar(response.message || 'Failed to update product', 'danger');
+      const response = await FetchProductData(curr_pdt_id as string | number);
+      if (response) {
+        setEditFormData({
+          product_image: response.image_url || null, 
+          product_name: response.name || '',
+          product_categories: response.categories?.[0] || '',
+          product_brands: response.brands?.[0] || '',
+          product_description: response.description || '',
+          product_price: response.price || '',
+          product_stock: response.stock || 0,
+          product_discount: response.discount || 0,
+          product_status: response.status || ''
+        });
       }
-    } catch (error) {
-      console.error('Error updating product:', error);
-      showSnackbar('An error occurred while updating', 'danger');
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      console.error('Error fetching product data:', err);
     }
   };
+
+  fetchProductData();
+}, [curr_pdt_id]);
+
+// Handle product update
+const handleProductUpdate = async () => {
+
+  if (!rowToEdit?.id) {
+    showSnackbar('No product selected for editing', 'danger');
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    const response = await UpdateProduct(rowToEdit.id, editFormData);
+    
+    if (response?.status === 200) {
+      showSnackbar('Product updated successfully', 'success');
+      setEditModalOpen(false);
+      setCurrPdtId(null);
+      setRowToEdit(null);
+       await dispatch(FetchAllProductsThunk(2021)).unwrap();
+      setFormErrors({});
+      
+      // Refresh the table data
+      const refreshedData = data.map(item => 
+        item.id === rowToEdit.id ? { ...item, ...editFormData } : item
+      );
+      setData(refreshedData);
+    } else {
+      showSnackbar( 'Failed to update product', 'danger');
+    }
+  } catch (error) {
+    console.error('Error updating product:', error);
+    showSnackbar('An error occurred while updating', 'danger');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Handle product delete
   const handleProductDelete = async () => {
@@ -1280,58 +1388,46 @@ const ProductFormFields = [
             {type === 'customers' && 'Customer Details'}
           </Typography>
           <Divider sx={{ my: 2 }} />
-          {selectedRow && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {Object.entries(selectedRow).map(([key, value]) => {
-                if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
-                  let displayValue = value;
-                  if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
-                    displayValue = `UGX: ${Number(value).toLocaleString()}`;
-                  } else if (key.includes('date') && value) {
-                    displayValue = new Date(value as string).toLocaleString();
-                  } else if (typeof value === 'object') {
-                    return null;
-                  }
-                  
-                  return (
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>
-                        {key.replace('_', ' ')}:
-                      </Typography>
-                      <Typography level="body-sm" sx={{ maxWidth: '60%', textAlign: 'right' }}>
-                        {String(displayValue)}
-                      </Typography>
-                    </Box>
-                  );
-                }
-                return null;
-              })}
-              {selectedRow.items && selectedRow.items.length > 0 && (
-                <>
-                  <Divider />
-                  <Typography level="body-sm" fontWeight="bold">Order Items:</Typography>
-                  <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
-                    {selectedRow.items.map((item: any, index: number) => (
-                      <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
-                        <Typography level="body-xs">
-                          {item.product_name || item.name || `Product #${item.product}`} x{item.quantity}
-                        </Typography>
-                        <Typography level="body-xs" fontWeight="md">
-                          UGX: {(item.price * item.quantity).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </>
-              )}
-              <Divider />
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                <Button variant="soft" color="neutral" onClick={() => setDetailModalOpen(false)}>
-                  Close
-                </Button>
-              </Box>
-            </Box>
-          )}
+{selectedRow && (
+  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    {Object.entries(selectedRow).map(([key, value]) => {
+      if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
+        let displayValue: React.ReactNode;
+
+        if (key === 'image') {
+          displayValue = (
+            <img
+              src={value as string}
+              alt="Product"
+              style={{ maxWidth: '30%', height: 'auto' }}
+            />
+          );
+        } else if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
+          displayValue = `UGX: ${Number(value).toLocaleString()}`;
+        } else if (key.includes('date') && value) {
+          displayValue = new Date(value as string).toLocaleString();
+        } else if (typeof value === 'object') {
+          return null;
+        } else {
+          // Convert primitive values to string
+          displayValue = String(value);
+        }
+
+        return (
+          <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>
+              {key.replace('_', ' ')}:
+            </Typography>
+            <Typography level="body-sm" sx={{ maxWidth: '60%', textAlign: 'right' }}>
+              {displayValue}  {/* Just render displayValue directly */}
+            </Typography>
+          </Box>
+        );
+      }
+      return null;
+    })}
+  </Box>
+)}
         </ModalDialog>
       </Modal>
 
@@ -1377,19 +1473,20 @@ const ProductFormFields = [
             sx={{ width: isMobile ? '90%' : 500 }}
           >
             <ModalClose />
-            <Typography id="edit-modal" level="h4" color="primary">
-              Edit Product
-            </Typography>
+            
+          
+          
             <Divider sx={{ my: 2 }} />
             <SmartForm 
               formControls={ProductFormFields}
               isLoading={isSubmitting}
               buttonText="Update Product"
+              
               formData={editFormData}
               setFormData={setEditFormData}
               onSubmit={handleProductUpdate}
               variant="solid"
-              isBtnDisabled={isSubmitting}
+              isBtnDisabled={!isFormValid() || isSubmitting}  
               message="Updating..."
             />
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>

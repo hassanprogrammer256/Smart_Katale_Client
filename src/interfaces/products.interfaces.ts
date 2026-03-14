@@ -17,7 +17,7 @@ export interface ProductCardProps {
 }
 
 export interface ProductDetailsProps {
-image?: string | undefined;
+image_url?: string | undefined;
 name: string | undefined;
 categories: string[];
 brands: string[];

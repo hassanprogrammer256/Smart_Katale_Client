@@ -100,10 +100,23 @@ export const FetchProductData = async (product_id: string|number) : Promise<Prod
     }
 };
 
-export const UpdateProduct = async (product_id: string|number, updatedData: Partial<ProductDetailsProps>) => {
+export const UpdateProduct = async (product_id: string|number, updatedData: any) => {
     try {
-        const response = await axios.put(`${API_URL}/products/${product_id}`, updatedData);
-      return response?.data;} 
+        const response = await axios.put(`${API_URL}/products/${product_id}/`, JSON.stringify({
+            name: updatedData.product_name,
+            description: updatedData.product_description,
+            price: updatedData.product_price,
+            stock: updatedData.product_stock,
+            categories: updatedData.product_categories,
+            brands: updatedData.product_brands,
+            image_url: updatedData.product_image_url
+        }), {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+      return response} 
       
         catch (error) {
         console.error('Error updating product:', error);
@@ -113,7 +126,6 @@ export const UpdateProduct = async (product_id: string|number, updatedData: Part
 export const DeleteProduct = async (product_id: string|number) => {
     try {
         const response = await axios.delete(`${API_URL}/products/${product_id}/`);
-        console.log('Delete response:', response);
         return response?.data;
     }catch (error) {
         console.error('Error deleting product:', error);

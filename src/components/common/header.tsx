@@ -161,6 +161,7 @@ const headerVariants: Variants = {
             >
               <FaBars size={20} />
             </IconButton>
+           {role !== 'manager' && (
             <Box 
               sx={{ 
                 display: { xs: 'none', md: 'flex' },
@@ -200,7 +201,7 @@ const headerVariants: Variants = {
                   />
                 )}
               </AnimatePresence>
-            </Box>
+            </Box> )}
 
             {/* Logo */}
             <motion.a 
@@ -371,22 +372,6 @@ const headerVariants: Variants = {
               >
                 My Profile
               </Typography>
-              {role === 'manager' && (
-                <Typography 
-                  level="body-md"
-                  sx={{ 
-                    cursor: 'pointer',
-                    py: 1,
-                    '&:hover': { color: '#035A54' }
-                  }}
-                  onClick={() => {
-                    navigate('/admin');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Admin Dashboard
-                </Typography>
-              )}
               <Typography 
                 level="body-md"
                 sx={{ 

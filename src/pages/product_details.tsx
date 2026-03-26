@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../types/hooks.types';
 import { useToast } from '../utils/toast-context';
-import { FaShoppingCart, FaHeart, FaShare, FaHome } from 'react-icons/fa';
+import { FaShoppingCart, FaHome } from 'react-icons/fa';
 import type { Product } from '../types/product.types';
 // import Rating from '@mui/material/Rating';
 import ProductCard from '../components/ui/product_card';

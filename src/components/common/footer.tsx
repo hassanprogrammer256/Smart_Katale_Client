@@ -12,9 +12,7 @@ import SmartAgents from '/images/smart_agents.png'
 import {Card, CardContent, List, ListItem, ListItemContent, ListItemDecorator } from "@mui/joy"
 import { ContactUsFooterFormFields } from "../../configs/form_fields"
 
-
 const Footer = () => {
-    
   return (
    <FooterLargeDevices />
   )
@@ -24,16 +22,14 @@ export default Footer;
 
 const FooterLargeDevices = () => {
 const navigate = useNavigate()
-  //  const dispatch= useDispatch()
- const  [isloading,setIsloading] = useState(false)
-const userMessage: { customer_name: string; email: string;subject:string;message:string } = {
+const [isloading, setIsloading] = useState(false)
+const userMessage: { customer_name: string; email: string; subject: string; message: string } = {
     customer_name: '',
     email: '',
     subject: '',
     message: ''
   }
-const [FeedBackFormData, setFeedBackFormData] =React.useState<{ [key: string]: string }>(userMessage);
-// const  {addToast}  = useToast();
+const [FeedBackFormData, setFeedBackFormData] = React.useState<{ [key: string]: string }>(userMessage);
 
 const isFormValid = (): boolean => {
   return Object.entries(FeedBackFormData).every(
@@ -43,10 +39,33 @@ const isFormValid = (): boolean => {
 
 const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    if (!isFormValid()) {
+      return;
+    }
+    
     setIsloading(true);
-    navigate('/')}
+  
+    const { customer_name, email, subject, message } = FeedBackFormData;
+    const mailtoLink = `mailto:hassanprogrammer256@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+      `Name: ${customer_name}\nEmail: ${email}\n\nMessage:\n${message}`
+    )}`;
+    
+    // Open default email client
+    window.location.href = mailtoLink;
+    
+    // Reset form after sending
+    setFeedBackFormData({
+      customer_name: '',
+      email: '',
+      subject: '',
+      message: ''
+    });
+    
+    setIsloading(false);
+    navigate('/');
+}
  
-
   return (
     <Stack direction='column' sx={{ backgroundColor: '#035A54' }}>
       <Typography 
@@ -55,7 +74,6 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
           textAlign: 'center', 
           fontSize: '2rem', 
           color: 'white',
-
         }} 
       >
         NEW TO MINIFY GADGETS?
@@ -64,7 +82,6 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 <Box sx={{backgroundColor:'black'}}>
  <Typography component='h1' sx={{color:'white',marginBottom:'2px',textTransform:'capitalize',textAlign:'center',fontSize: '2rem',fontWeight:{md:800},fontFamily:"Alumni Sans Pinstripe"}}>About Us</Typography>
 
-
       <Grid
         container
         columns={{ xs:1}}
@@ -72,8 +89,6 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
           width: '100%',
           paddingX:{md:2},
           marginBottom:1,
-          
-         
         }}
       >
    {/* details data */}
@@ -223,7 +238,9 @@ opacity:.9
   <a href="https://wa.me/256787808501?text=Hello%20Minify%20Gadgets!" target="_blank" rel="noopener noreferrer">
     <FaWhatsapp size={20} color="white" className="cursor-pointer" />
   </a>
-  <FaTiktok size={15} color="white" className="cursor-pointer" />
+  <a href="https://www.tiktok.com/@reuben2560">
+    <FaTiktok size={15} color="white" className="cursor-pointer" />
+  </a>
   <a href="tel:256787808501">
     <FaPhoneAlt size={15} color="white" className="cursor-pointer"/>
   </a>

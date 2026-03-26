@@ -399,27 +399,6 @@ const ProductDetails = () => {
               </Button>
             </Box>
 
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-              <Button
-                size="md"
-                color="neutral"
-                variant="plain"
-                startDecorator={<FaHeart />}
-                sx={{ flex: 1 }}
-              >
-                Add to Wishlist
-              </Button>
-              <Button
-                size="md"
-                color="neutral"
-                variant="plain"
-                startDecorator={<FaShare />}
-                sx={{ flex: 1 }}
-              >
-                Share
-              </Button>
-            </Box>
           </Box>
         </Grid>
       </Grid>

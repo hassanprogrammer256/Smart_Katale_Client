@@ -122,6 +122,26 @@ export const UpdateProduct = async (product_id: string|number, updatedData: any)
         console.error('Error updating product:', error);
         }
     }
+export const UpdateOrderStatus = async (order_id: string|number, status: string) => {
+    console.log({order_id,status})
+    try {
+        const response = await axios.put(`${API_URL}/orders/${order_id}/`, JSON.stringify({
+            status
+        }), {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        if (response.status === 200){
+    return response} 
+        }
+
+  
+      
+        catch (error) {
+        console.error('Error updating product:', error);
+        }
+    }
 
 export const DeleteProduct = async (product_id: string|number) => {
     try {
@@ -134,3 +154,4 @@ export const DeleteProduct = async (product_id: string|number) => {
 
 
 }
+

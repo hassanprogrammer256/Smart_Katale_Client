@@ -44,9 +44,9 @@ import SmartForm from '../common/form';
 import type { AnalysisTableProps } from '../../interfaces/analysis.interfaces';
 import type { Order } from '../../types/orders.types';
 import type { CustomerDataProp, ManagerDataProp } from '../../interfaces/users.interfaces';
-import {FetchProductData, UpdateProduct } from '../../api/products';
-import { useState, useEffect } from 'react';
-import { DeleteProductThunk, FetchAllProductsThunk} from '../../Slices/productSlice';
+import { FetchProductData, UpdateProduct, UpdateOrderStatus } from '../../api/products';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { DeleteProductThunk, FetchAllProductsThunk } from '../../Slices/productSlice';
 
 interface ProductItem {
   id: string | number;
@@ -157,9 +157,10 @@ interface RowMenuProps {
   showEdit: boolean;
   showDelete: boolean;
   tableType: string;
+  canEditStatus?: boolean;
 }
 
-function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete, tableType }: RowMenuProps) {
+function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete, tableType, canEditStatus }: RowMenuProps) {
   return (
     <Dropdown>
       <MenuButton
@@ -173,11 +174,10 @@ function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete, tableType }: 
           <VisibilityRoundedIcon fontSize="small" sx={{ mr: 1 }} />
           View
         </MenuItem>
-        {/* Only show Edit for products table */}
-        {showEdit && tableType === 'products' && onEdit && (
+        {showEdit && (tableType === 'products' || (tableType === 'orders' && canEditStatus)) && onEdit && (
           <MenuItem onClick={onEdit}>
             <Edit fontSize="small" sx={{ mr: 1 }} />
-            Edit
+            {tableType === 'orders' ? 'Update Status' : 'Edit'}
           </MenuItem>
         )}
         <Divider />
@@ -192,7 +192,7 @@ function RowMenu({ onDelete, onView, onEdit, showEdit, showDelete, tableType }: 
   );
 }
 
-export const AnalysisTable = (props: AnalysisTableProps) => {
+export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
   const { 
     type = 'orders', 
     limit, 
@@ -202,16 +202,15 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     onRowClick,
   } = props;
 
-  
   const { role, id } = useAppSelector((state) => state.user);
   const { categories, brands } = useAppSelector((state) => state.products);
 
   const isMobile = useMediaQuery('(max-width: 600px)');
   const isTablet = useMediaQuery('(max-width: 960px)');
-  // State
+  
   const [order, setOrder] = React.useState<Order>('desc');
-  const [orderBy, setOrderBy] = React.useState<string>('id');
-  const [selected, setSelected] = React.useState<(string | number)[]>([]);
+  const [orderBy, setOrderBy] = React.useState<string>('created_at');
+  const [_selected, setSelected] = React.useState<(string | number)[]>([]);
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [filters, setFilters] = React.useState({
     status: 'all',
@@ -227,219 +226,275 @@ export const AnalysisTable = (props: AnalysisTableProps) => {
     color: 'neutral' as ColorPaletteProp,
   });
   const [selectedRow, setSelectedRow] = React.useState<any>(null);
-const [detailModalOpen, setDetailModalOpen] = React.useState(false);
-const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-const [editModalOpen, setEditModalOpen] = React.useState(false);
-const [rowToDelete, setRowToDelete] = React.useState<string | number | null>(null);
-const [rowToEdit, setRowToEdit] = React.useState<any>(null);
-const [editFormData, setEditFormData] = React.useState<any>({
-  product_image: undefined,
-  product_name: '',
-  product_categories: '',
-  product_brands: '',
-  product_description: '',
-  product_price: '',
-  product_stock: 0,
-  product_discount: 0,
-  product_status: ''
-});
-const [isSubmitting, setIsSubmitting] = React.useState(false);
-const [curr_pdt_id, setCurrPdtId] = useState<string | number | null>(null);
-const [_formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+  const [detailModalOpen, setDetailModalOpen] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [rowToDelete, setRowToDelete] = React.useState<string | number | null>(null);
+  const [rowToEdit, setRowToEdit] = React.useState<any>(null);
+  const [editFormData, setEditFormData] = React.useState<any>({
+    product_image: undefined,
+    product_name: '',
+    product_categories: '',
+    product_brands: '',
+    product_description: '',
+    product_price: '',
+    product_stock: 0,
+    product_discount: 0,
+    product_status: '',
+    order_status: ''
+  });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [curr_pdt_id, setCurrPdtId] = useState<string | number | null>(null);
+  const [_formErrors, setFormErrors] = React.useState<Record<string, string>>({});
+  
+  const dataFetchedRef = useRef(false);
 
+  const dispatch = useAppDispatch();
 
-const dispatch = useAppDispatch();
-
-useEffect(() => {
-  dispatch(FetchAllProductsThunk(2021));
-}, [dispatch, role]);
-
-// Create options for selects
-const categoryOptions = React.useMemo(() => {
-  const options = [{ value: '', label: 'Select a category' }];
-  if (categories && categories.length > 0) {
-    return [...options, ...categories.map((cat: string) => ({ value: cat, label: cat }))];
-  }
-  return options;
-}, [categories]);
-
-const brandOptions = React.useMemo(() => {
-  const options = [{ value: '', label: 'Select a brand' }];
-  if (brands && brands.length > 0) {
-    return [...options, ...brands.map((brand: string) => ({ value: brand, label: brand }))];
-  }
-  return options;
-}, [brands]);
-
-const ProductFormFields = [
-   {
-    name: 'product_image',
-    type: 'file',
-    placeholder: 'Upload Product Image',
-    componentType: "file",
-    showLabels: true,
-    validation: {
-      fileTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-      maxSize: 5 * 1024 * 1024, // 5MB
-      message: 'Please upload a valid image file (jpg, png, gif, webp) under 5MB'
+  useEffect(() => {
+    if (role === 'manager') {
+      dispatch(FetchAllProductsThunk(2021));
     }
-  },
-  { 
-    name: 'product_name', 
-    type: 'text', 
-    placeholder: 'Product Name',
-    componentType: "input",
-    required: true,
-    showLabels: true, 
-    validation: {
-      minLength: 10,
-      maxLength: 50,
-      message: 'Product name must be between 10 and 50 characters'
-    } 
-  },
-  { 
-    name: 'product_description', 
-    type: 'text', 
-    placeholder: 'Product Description',
-    componentType: "textarea",
-    showLabels: true, 
-    validation: {
-      minLength: 10,
-      maxLength: 100,
-      message: 'Product description must be between 10 and 100 characters'
-    }
-  },
-  { 
-    name: 'product_price', 
-    type: 'number', 
-    placeholder: 'Product Price',
-    componentType: "number",
-    required: true,
-    showLabels: true,
-    validation: {
-      min: 0,
-      message: 'Product price cannot be negative'
-    }
-  },
-  { 
-    name: 'product_categories', 
-    type: 'text', 
-    placeholder: 'Select Product Category',
-    componentType: "select",
-    required: true,
-    showLabels: true,
-    options: categoryOptions
-  },
-  { 
-    name: 'product_brands', 
-    type: 'text', 
-    placeholder: 'Select Product Brand',
-    componentType: "select",
-    required: true,
-    showLabels: true,
-    options: brandOptions
-  },
-  { 
-    name: 'product_discount', 
-    type: 'number', 
-    placeholder: 'Product Discount, if any',
-    componentType: "number",
-    showLabels: true,
-    validation: {
-      min: 0,
-      max: 100,
-      message: 'Product discount must be between 0 and 100'
-    }
-  },
-  { 
-    name: 'product_status', 
-    type: 'text', 
-    placeholder: 'Select Product Status',
-    componentType: "select",
-    options: [
-      { value: '', label: 'Select status' },
-      { value: 'Brand New', label: 'Brand New' },
-      { value: 'Uk Used', label: 'Uk Used' }
-    ],
-    showLabels: true
-  }
-];
+  }, [dispatch, role]);
 
-const isFormValid = () => {
-  for (const field of ProductFormFields) {
-    if ((!editFormData[field.name] || editFormData[field.name].toString().trim() === '' || editFormData[field.name] === 0) || editFormData[field.name] === undefined) {
-      return false;
+  const categoryOptions = useMemo(() => {
+    const options = [{ value: '', label: 'Select a category' }];
+    if (categories && categories.length > 0) {
+      return [...options, ...categories.map((cat: string) => ({ value: cat, label: cat }))];
     }
-  }
-  return true;
+    return options;
+  }, [categories]);
 
-};
+  const brandOptions = useMemo(() => {
+    const options = [{ value: '', label: 'Select a brand' }];
+    if (brands && brands.length > 0) {
+      return [...options, ...brands.map((brand: string) => ({ value: brand, label: brand }))];
+    }
+    return options;
+  }, [brands]);
 
-useEffect(() => {
-  const fetchProductData = async () => {
-    if (!curr_pdt_id) return;
-    
-    try {
-      const response = await FetchProductData(curr_pdt_id as string | number);
-      if (response) {
-        setEditFormData({
-          product_image: response.image_url || null, 
-          product_name: response.name || '',
-          product_categories: response.categories?.[0] || '',
-          product_brands: response.brands?.[0] || '',
-          product_description: response.description || '',
-          product_price: response.price || '',
-          product_stock: response.stock || 0,
-          product_discount: response.discount || 0,
-          product_status: response.status || ''
-        });
+  const statusOptions = [
+    { value: '', label: 'Select status' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'processing', label: 'Processing' },
+    { value: 'shipped', label: 'Shipped' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
+  const ProductFormFields = useMemo(() => [
+    {
+      name: 'product_image',
+      type: 'file',
+      placeholder: 'Upload Product Image',
+      componentType: "file",
+      showLabels: true,
+      validation: {
+        fileTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+        maxSize: 5 * 1024 * 1024,
+        message: 'Please upload a valid image file (jpg, png, gif, webp) under 5MB'
       }
-    } catch (err) {
-      console.error('Error fetching product data:', err);
+    },
+    { 
+      name: 'product_name', 
+      type: 'text', 
+      placeholder: 'Product Name',
+      componentType: "input",
+      required: true,
+      showLabels: true, 
+      validation: {
+        minLength: 3,
+        maxLength: 100,
+        message: 'Product name must be between 3 and 100 characters'
+      } 
+    },
+    { 
+      name: 'product_description', 
+      type: 'text', 
+      placeholder: 'Product Description',
+      componentType: "textarea",
+      required: true,
+      showLabels: true, 
+      validation: {
+        minLength: 10,
+        maxLength: 500,
+        message: 'Product description must be between 10 and 500 characters'
+      }
+    },
+    { 
+      name: 'product_price', 
+      type: 'number', 
+      placeholder: 'Product Price',
+      componentType: "number",
+      required: true,
+      showLabels: true,
+      validation: {
+        min: 0,
+        message: 'Product price cannot be negative'
+      }
+    },
+    { 
+      name: 'product_categories', 
+      type: 'text', 
+      placeholder: 'Select Product Category',
+      componentType: "select",
+      required: true,
+      showLabels: true,
+      options: categoryOptions
+    },
+    { 
+      name: 'product_brands', 
+      type: 'text', 
+      placeholder: 'Select Product Brand',
+      componentType: "select",
+      required: true,
+      showLabels: true,
+      options: brandOptions
+    },
+    { 
+      name: 'product_discount', 
+      type: 'number', 
+      placeholder: 'Product Discount (%)',
+      componentType: "number",
+      showLabels: true,
+      validation: {
+        min: 0,
+        max: 100,
+        message: 'Product discount must be between 0 and 100'
+      }
+    },
+    { 
+      name: 'product_status', 
+      type: 'text', 
+      placeholder: 'Select Product Status',
+      componentType: "select",
+      required: true,
+      options: [
+        { value: '', label: 'Select status' },
+        { value: 'Brand New', label: 'Brand New' },
+        { value: 'Uk Used', label: 'Uk Used' }
+      ],
+      showLabels: true
     }
-  };
+  ], [categoryOptions, brandOptions]);
 
-  fetchProductData();
-}, [curr_pdt_id]);
+  const OrderStatusFormFields = useMemo(() => [
+    { 
+      name: 'order_status', 
+      type: 'text', 
+      placeholder: 'Update Order Status',
+      componentType: "select",
+      required: true,
+      showLabels: true,
+      label: 'Order Status',
+      options: statusOptions
+    }
+  ], []);
 
-// Handle product update
-const handleProductUpdate = async () => {
+  const isProductFormValid = useCallback(() => {
+    for (const field of ProductFormFields) {
+      if (field.required && (!editFormData[field.name] || editFormData[field.name].toString().trim() === '')) {
+        return false;
+      }
+    }
+    return true;
+  }, [ProductFormFields, editFormData]);
 
-  if (!rowToEdit?.id) {
-    showSnackbar('No product selected for editing', 'danger');
-    return;
-  }
+  const isOrderStatusFormValid = useCallback(() => {
+    return editFormData.order_status && editFormData.order_status.trim() !== '';
+  }, [editFormData.order_status]);
 
-  setIsSubmitting(true);
-  try {
-    const response = await UpdateProduct(rowToEdit.id, editFormData);
-    
-    if (response?.status === 200) {
-      showSnackbar('Product updated successfully', 'success');
-      setEditModalOpen(false);
-      setCurrPdtId(null);
-      setRowToEdit(null);
-       await dispatch(FetchAllProductsThunk(2021)).unwrap();
-      setFormErrors({});
+  useEffect(() => {
+    if (type === 'products' && curr_pdt_id) {
+      const fetchProductData = async () => {
+        try {
+          const response = await FetchProductData(curr_pdt_id as string | number);
+          if (response) {
+            setEditFormData({
+              product_image: response.image_url || null, 
+              product_name: response.name || '',
+              product_categories: response.categories?.[0] || '',
+              product_brands: response.brands?.[0] || '',
+              product_description: response.description || '',
+              product_price: response.price || '',
+              product_stock: response.stock || 0,
+              product_discount: response.discount || 0,
+              product_status: response.status || ''
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching product data:', err);
+        }
+      };
+      fetchProductData();
+    } else if (type === 'orders' && rowToEdit) {
+      setEditFormData({
+        order_status: rowToEdit.status || ''
+      });
+    }
+  }, [curr_pdt_id, rowToEdit, type]);
+
+  const handleProductUpdate = useCallback(async () => {
+    if (!rowToEdit?.id) {
+      showSnackbar('No product selected for editing', 'danger');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await UpdateProduct(rowToEdit.id, editFormData);
       
-      // Refresh the table data
-      const refreshedData = data.map(item => 
-        item.id === rowToEdit.id ? { ...item, ...editFormData } : item
-      );
-      setData(refreshedData);
-    } else {
-      showSnackbar( 'Failed to update product', 'danger');
+      if (response?.status === 200) {
+        showSnackbar('Product updated successfully', 'success');
+        setEditModalOpen(false);
+        setCurrPdtId(null);
+        setRowToEdit(null);
+        await dispatch(FetchAllProductsThunk(2021)).unwrap();
+        setFormErrors({});
+        
+        setData(prev => prev.map(item => 
+          item.id === rowToEdit.id ? { ...item, ...editFormData } : item
+        ));
+      } else {
+        showSnackbar('Failed to update product', 'danger');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      showSnackbar('An error occurred while updating', 'danger');
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error) {
-    console.error('Error updating product:', error);
-    showSnackbar('An error occurred while updating', 'danger');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  }, [rowToEdit, editFormData, dispatch]);
 
-  // Handle product delete
-  const handleProductDelete = async () => {
+  const handleOrderStatusUpdate = useCallback(async () => {
+    if (!rowToEdit?.id) {
+      showSnackbar('No order selected for editing', 'danger');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await UpdateOrderStatus(rowToEdit.id, editFormData.order_status);
+      if (response?.status === 200) {
+        showSnackbar('Order status updated successfully', 'success');
+        setEditModalOpen(false);
+        setRowToEdit(null);
+        location.reload()
+        setData(prev => prev.map(item => 
+          item.id === rowToEdit.id ? { ...item, status: editFormData.order_status } : item
+        ));
+      } else {
+        showSnackbar('Failed to update order status', 'danger');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      showSnackbar('An error occurred while updating', 'danger');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [rowToEdit, editFormData.order_status]);
+
+  const handleProductDelete = useCallback(async () => {
     if (!rowToDelete) return;
 
     setIsSubmitting(true);
@@ -447,13 +502,11 @@ const handleProductUpdate = async () => {
       const response = await dispatch(DeleteProductThunk(rowToDelete));
 
       if ((response?.payload as any)?.status === 204) {
-        setSelected(selected.filter(id => id !== rowToDelete));
+        setSelected(prev => prev.filter(id => id !== rowToDelete));
         setData(prev => prev.filter(item => item.id !== rowToDelete));
-        showSnackbar(`Product deleted successfully`, 'success');
+        showSnackbar('Product deleted successfully', 'success');
         setDeleteConfirmOpen(false);
         setRowToDelete(null);
-        location.reload();
-
       } else {
         showSnackbar('Failed to delete product', 'danger');
       }
@@ -465,11 +518,15 @@ const handleProductUpdate = async () => {
       setDeleteConfirmOpen(false);
       setIsSubmitting(false);
     }
-  };
+  }, [rowToDelete, dispatch]);
 
   // Main data fetch effect
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
+      if (dataFetchedRef.current && data.length > 0) {
+        return;
+      }
+      
       setLoading(true);
       try {
         let response;
@@ -511,23 +568,30 @@ const handleProductUpdate = async () => {
           case 'orders':
             if (role === 'manager' && 'orders' in response) {
               const managerResponse = response as ManagerDataProp;
-              fetchedData = (managerResponse.orders?.order_details || []).map((order: OrderItem) => ({
-                id: order.id,
-                order_number: order.order_number || `ORD-${order.id}`,
-                created_at: order.created_at || order.order_date,
-                status: order.status?.toLowerCase() || 'pending',
-                total_amount: order.total_amount || order.total_price || 0,
-                total_items: order.total_items || order.items?.length || 0,
-                customer_name: order.customer_name || order.customer?.name || 'N/A',
-                customer_email: order.customer_email || order.customer?.email,
-                first_name: order.first_name || order.customer?.first_name,
-                last_name: order.last_name || order.customer?.last_name,
-                phone_number: order.phone_number || order.customer?.phone,
-                city: order.city || order.shipping_address?.city,
-                town: order.town || order.shipping_address?.town,
-                payment_method: order.payment_method || 'N/A',
-                items: order.items || []
-              }));
+              fetchedData = (managerResponse.orders?.order_details || [])
+                .map((order: OrderItem) => ({
+                  id: order.id,
+                  order_number: order.order_number || `ORD-${order.id}`,
+                  created_at: order.created_at || order.order_date,
+                  status: order.status?.toLowerCase() || 'pending',
+                  total_amount: order.total_amount || order.total_price || 0,
+                  total_items: order.total_items || order.items?.length || 0,
+                  customer_name: order.customer_name || order.customer?.name || 'N/A',
+                  customer_email: order.customer_email || order.customer?.email,
+                  first_name: order.first_name || order.customer?.first_name,
+                  last_name: order.last_name || order.customer?.last_name,
+                  phone_number: order.phone_number || order.customer?.phone,
+                  city: order.city || order.shipping_address?.city,
+                  town: order.town || order.shipping_address?.town,
+                  payment_method: order.payment_method || 'N/A',
+                  items: order.items || []
+                }))
+                .sort((a, b) => {
+              
+                  if (a.status === 'pending' && b.status !== 'pending') return -1;
+                  if (a.status !== 'pending' && b.status === 'pending') return 1;
+                  return new Date(b.created_at??'').getTime() - new Date(a.created_at??'').getTime();
+                });
             } else if (role === 'customer' && 'Orders' in response) {
               const customerResponse = response as CustomerDataProp;
               fetchedData = (customerResponse.Orders?.details || []).map((order: OrderItem) => ({
@@ -583,6 +647,7 @@ const handleProductUpdate = async () => {
         }
         
         setData(fetchedData);
+        dataFetchedRef.current = true;
       } catch (error) {
         console.error('Error fetching data:', error);
         showSnackbar('Error loading data', 'danger');
@@ -594,10 +659,13 @@ const handleProductUpdate = async () => {
     if ((role === 'manager' || role === 'customer') && (role !== 'customer' || id)) {
       fetchData();
     }
-  }, [type, role, id, data.length]);
+  }, [type, role, id]);
 
-  // Filtered data
-  const filteredRows = React.useMemo(() => {
+  const showSnackbar = useCallback((message: string, color: ColorPaletteProp = 'success') => {
+    setSnackbar({ open: true, message, color });
+  }, []);
+
+  const filteredRows = useMemo(() => {
     let filtered = [...data];
 
     if (filters.search) {
@@ -622,8 +690,7 @@ const handleProductUpdate = async () => {
     return filtered;
   }, [data, filters, limit]);
 
-  // Sorting
-  const sortedRows = React.useMemo(() => {
+  const sortedRows = useMemo(() => {
     const sorted = [...filteredRows];
     return sorted.sort((a, b) => {
       const aVal = a[orderBy as keyof typeof a];
@@ -643,8 +710,7 @@ const handleProductUpdate = async () => {
     });
   }, [filteredRows, order, orderBy]);
 
-  // Pagination
-  const paginatedRows = React.useMemo(() => {
+  const paginatedRows = useMemo(() => {
     if (limit || !showPagination) return sortedRows;
     const start = (currentPage - 1) * rowsPerPage;
     return sortedRows.slice(start, start + rowsPerPage);
@@ -652,52 +718,49 @@ const handleProductUpdate = async () => {
 
   const pageCount = Math.ceil(sortedRows.length / rowsPerPage);
 
-  // Handlers
-  const handleSort = (field: string) => {
+  const handleSort = useCallback((field: string) => {
     if (orderBy === field) {
       setOrder(order === 'asc' ? 'desc' : 'asc');
     } else {
       setOrderBy(field);
       setOrder('asc');
     }
-  };
-  const handleFilterChange = (key: keyof typeof filters, value: any) => {
+  }, [orderBy, order]);
+  
+  const handleFilterChange = useCallback((key: keyof typeof filters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({
       status: 'all',
       search: '',
     });
     setCurrentPage(1);
     showSnackbar('Filters cleared', 'neutral');
-  };
+  }, [showSnackbar]);
 
-  const showSnackbar = (message: string, color: ColorPaletteProp = 'success') => {
-    setSnackbar({ open: true, message, color });
-  };
-
-  const handleView = (row: any) => {
+  const handleView = useCallback((row: any) => {
     setSelectedRow(row);
     setDetailModalOpen(true);
     onRowClick?.(row);
-  };
+  }, [onRowClick]);
 
-  const handleEdit = (row: any) => {
+  const handleEdit = useCallback((row: any) => {
     setRowToEdit(row);
-    setCurrPdtId(row.id);
+    if (type === 'products') {
+      setCurrPdtId(row.id);
+    }
     setEditModalOpen(true);
-  };
+  }, [type]);
 
-  const handleDeleteClick = (id: string | number) => {
+  const handleDeleteClick = useCallback((id: string | number) => {
     setRowToDelete(id);
     setDeleteConfirmOpen(true);
-  };
+  }, []);
 
-  // Column configurations based on type
-  const getColumns = () => {
+  const getColumns = useCallback(() => {
     switch (type) {
       case 'orders':
         return [
@@ -710,7 +773,7 @@ const handleProductUpdate = async () => {
         ];
       case 'products':
         return [
-          { field: 'image', header: 'Image', width: 250, sortable: true,sticky: true },
+          { field: 'image', header: 'Image', width: 250, sortable: true, sticky: true },
           { field: 'name', header: 'Product Name', width: 250, sortable: true },
           { field: 'category', header: 'Category', width: 150, sortable: true },
           { field: 'price', header: 'Price', width: 120, sortable: true },
@@ -730,9 +793,9 @@ const handleProductUpdate = async () => {
       default:
         return [];
     }
-  };
+  }, [type, role]);
 
- const getResponsiveColumns = () => {
+  const getResponsiveColumns = useCallback(() => {
     const allColumns = getColumns();
     
     if (isMobile) {
@@ -772,9 +835,9 @@ const handleProductUpdate = async () => {
     }
     
     return allColumns;
-  };
+  }, [getColumns, isMobile, isTablet, type]);
 
-  const renderCell = (row: any, field: string) => {
+  const renderCell = useCallback((row: any, field: string) => {
     switch (field) {
       case 'status':
         return (
@@ -882,28 +945,28 @@ const handleProductUpdate = async () => {
       default:
         return <Typography level="body-sm">{row[field] || '-'}</Typography>;
     }
-  };
+  }, [isMobile]);
 
-  // Responsive cell rendering
-  const renderResponsiveCell = (row: any, field: string) => {
+  const renderResponsiveCell = useCallback((row: any, field: string) => {
     const content = renderCell(row, field);
     
-    // Add truncation for text fields (but not for image)
     if (field !== 'image' && ['name', 'customer_name', 'email', 'order_number', 'first_name', 'last_name'].includes(field)) {
       return <TruncatedText text={String(row[field] || '')} maxLength={isMobile ? 15 : 25} />;
     }
     
     return content;
-  };
+  }, [renderCell, isMobile]);
 
   const columns = getResponsiveColumns();
-  
-  // Calculate total width for table
-  const totalWidth = columns.reduce((sum, col) => sum + (col.width || 100), 80); // +80 for actions column
+  const totalWidth = columns.reduce((sum, col) => sum + (col.width || 100), 80);
+
+  const currentFormFields = type === 'products' ? ProductFormFields : OrderStatusFormFields;
+  const currentIsFormValid = type === 'products' ? isProductFormValid : isOrderStatusFormValid;
+  const currentHandleSubmit = type === 'products' ? handleProductUpdate : handleOrderStatusUpdate;
+  const currentTitle = type === 'products' ? 'Edit Product' : 'Update Order Status';
 
   return (
     <React.Fragment>
-      {/* Title with responsive sizing */}
       {title && (
         <Typography 
           level={isMobile ? 'title-lg' : 'h4'} 
@@ -913,7 +976,6 @@ const handleProductUpdate = async () => {
         </Typography>
       )}
 
-      {/* Active Filters - Responsive */}
       {(filters.status !== 'all' || filters.search) && (
         <Box sx={{ 
           mb: 2, 
@@ -954,10 +1016,8 @@ const handleProductUpdate = async () => {
         </Box>
       )}
 
-      {/* Search and Filters */}
       {showFilters && (
         <>
-          {/* Mobile Filter Section */}
           <Sheet
             className="SearchAndFilters-mobile"
             sx={{ display: { xs: 'flex', sm: 'none' }, my: 1, gap: 1 }}
@@ -1021,7 +1081,6 @@ const handleProductUpdate = async () => {
             </Modal>
           </Sheet>
 
-          {/* Desktop Filter Section */}
           <Box
             className="SearchAndFilters-tabletUp"
             sx={{
@@ -1080,14 +1139,12 @@ const handleProductUpdate = async () => {
         </>
       )}
 
-      {/* Loading State */}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
       )}
 
-      {/* Table View - With responsive adjustments */}
       {!loading && (
         <Sheet
           className="TableContainer"
@@ -1127,7 +1184,7 @@ const handleProductUpdate = async () => {
           >
             <thead>
               <tr>
-                {columns.map((column, _index) => (
+                {columns.map((column) => (
                   <th 
                     key={column.field}
                     style={{ 
@@ -1135,7 +1192,6 @@ const handleProductUpdate = async () => {
                       minWidth: column.width,
                       padding: isMobile ? '8px 4px' : '12px 6px',
                       cursor: column.sortable ? 'pointer' : 'default',
-            
                       whiteSpace: 'nowrap',
                       position: 'sticky',
                       left: column.sticky ? 0 : 'auto',
@@ -1195,7 +1251,7 @@ const handleProductUpdate = async () => {
                     onClick={() => onRowClick && onRowClick(row)}
                     style={{ cursor: onRowClick ? 'pointer' : 'default' }}
                   >
-                    {columns.map((column, _index) => (
+                    {columns.map((column) => (
                       <td 
                         key={column.field}
                         style={{
@@ -1235,11 +1291,12 @@ const handleProductUpdate = async () => {
                       }}>
                         <RowMenu
                           onView={() => handleView(row)}
-                          onEdit={type === 'products' ? () => handleEdit(row) : undefined}
+                          onEdit={() => handleEdit(row)}
                           onDelete={() => handleDeleteClick(row.id)}
                           showEdit={role === 'manager'}
-                          showDelete={role === 'manager'}
+                          showDelete={role === 'manager' && type === 'products'}
                           tableType={type}
+                          canEditStatus={type === 'orders' && row.status === 'pending'}
                         />
                       </Box>
                     </td>
@@ -1251,7 +1308,6 @@ const handleProductUpdate = async () => {
         </Sheet>
       )}
 
-      {/* Pagination - Responsive */}
       {showPagination && !limit && pageCount > 1 && (
         <Box
           className="Pagination"
@@ -1342,7 +1398,6 @@ const handleProductUpdate = async () => {
         </Box>
       )}
 
-      {/* Results Summary - Responsive */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -1361,7 +1416,6 @@ const handleProductUpdate = async () => {
         )}
       </Box>
 
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -1388,46 +1442,45 @@ const handleProductUpdate = async () => {
             {type === 'customers' && 'Customer Details'}
           </Typography>
           <Divider sx={{ my: 2 }} />
-{selectedRow && (
-  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-    {Object.entries(selectedRow).map(([key, value]) => {
-      if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
-        let displayValue: React.ReactNode;
+          {selectedRow && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '60vh', overflowY: 'auto' }}>
+              {Object.entries(selectedRow).map(([key, value]) => {
+                if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
+                  let displayValue: React.ReactNode;
 
-        if (key === 'image') {
-          displayValue = (
-            <img
-              src={value as string}
-              alt="Product"
-              style={{ maxWidth: '30%', height: 'auto' }}
-            />
-          );
-        } else if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
-          displayValue = `UGX: ${Number(value).toLocaleString()}`;
-        } else if (key.includes('date') && value) {
-          displayValue = new Date(value as string).toLocaleString();
-        } else if (typeof value === 'object') {
-          return null;
-        } else {
-          // Convert primitive values to string
-          displayValue = String(value);
-        }
+                  if (key === 'image') {
+                    displayValue = (
+                      <img
+                        src={value as string}
+                        alt="Product"
+                        style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }}
+                      />
+                    );
+                  } else if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
+                    displayValue = `UGX: ${Number(value).toLocaleString()}`;
+                  } else if (key.includes('date') && value) {
+                    displayValue = new Date(value as string).toLocaleString();
+                  } else if (typeof value === 'object') {
+                    return null;
+                  } else {
+                    displayValue = String(value);
+                  }
 
-        return (
-          <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize' }}>
-              {key.replace('_', ' ')}:
-            </Typography>
-            <Typography level="body-sm" sx={{ maxWidth: '60%', textAlign: 'right' }}>
-              {displayValue}  {/* Just render displayValue directly */}
-            </Typography>
-          </Box>
-        );
-      }
-      return null;
-    })}
-  </Box>
-)}
+                  return (
+                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                      <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize', minWidth: '120px' }}>
+                        {key.replace('_', ' ')}:
+                      </Typography>
+                      <Typography level="body-sm" sx={{ textAlign: 'right', wordBreak: 'break-word' }}>
+                        {displayValue}
+                      </Typography>
+                    </Box>
+                  );
+                }
+                return null;
+              })}
+            </Box>
+          )}
         </ModalDialog>
       </Modal>
 
@@ -1463,43 +1516,64 @@ const handleProductUpdate = async () => {
         </ModalDialog>
       </Modal>
 
-      {/* Edit Product Modal - Only for products */}
-      {type === 'products' && (
-        <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)}>
-          <ModalDialog
-            aria-labelledby="edit-modal"
-            layout="center"
-            size="md"
-            sx={{ width: isMobile ? '90%' : 500 }}
-          >
-            <ModalClose />
-            
-          
-          
-            <Divider sx={{ my: 2 }} />
+      {/* Edit Modal - Fixed height with auto overflow */}
+      <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)}>
+        <ModalDialog
+          aria-labelledby="edit-modal"
+          layout="center"
+          size="md"
+          sx={{ 
+            width: isMobile ? '90%' : 500,
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <ModalClose />
+          <Typography id="edit-modal" level="h2">
+            {currentTitle}
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ 
+            flex: 1, 
+            overflowY: 'auto', 
+            pr: 1,
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f1f1',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#888',
+              borderRadius: '4px',
+            },
+          }}>
             <SmartForm 
-              formControls={ProductFormFields}
+              formControls={currentFormFields}
               isLoading={isSubmitting}
-              buttonText="Update Product"
-              
+              buttonText={type === 'products' ? 'Update Product' : 'Update Status'}
               formData={editFormData}
               setFormData={setEditFormData}
-              onSubmit={handleProductUpdate}
+              onSubmit={currentHandleSubmit}
               variant="solid"
-              isBtnDisabled={!isFormValid() || isSubmitting}  
-              message="Updating..."
+              isBtnDisabled={!currentIsFormValid() || isSubmitting}  
+              message={type === 'products' ? 'Updating...' : 'Updating Status...'}
             />
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
-              <Button variant="plain" color="neutral" onClick={() => setEditModalOpen(false)}>
-                Cancel
-              </Button>
-            </Box>
-          </ModalDialog>
-        </Modal>
-      )}
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 2 }}>
+            <Button variant="plain" color="neutral" onClick={() => setEditModalOpen(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </ModalDialog>
+      </Modal>
     </React.Fragment>
   );
-};
+});
+
+AnalysisTable.displayName = 'AnalysisTable';
 
 export const OrdersTable = (props: Omit<AnalysisTableProps, 'type'>) => (
   <AnalysisTable type="orders" title="Orders Management" {...props} />

@@ -1428,13 +1428,14 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
       </Snackbar>
 
       {/* Detail Modal */}
+{/* Detail Modal */}
 <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
   <ModalDialog
     aria-labelledby="detail-modal"
     layout="center"
     size="lg"
     sx={{ 
-      maxWidth: 800, 
+      maxWidth: 900, 
       width: isMobile ? '95%' : 'auto',
       maxHeight: '90vh',
       display: 'flex',
@@ -1467,46 +1468,123 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
             gap: 2 
           }}>
-            {Object.entries(selectedRow).map(([key, value]) => {
-              if (value !== null && value !== undefined && key !== 'id' && key !== 'items' && key !== 'image' && typeof value !== 'object') {
-                let displayValue: React.ReactNode;
-
-                if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
-                  displayValue = `UGX: ${Number(value).toLocaleString()}`;
-                } else if (key.includes('date') && value) {
-                  displayValue = new Date(value as string).toLocaleString();
-                } else if (key === 'status') {
-                  displayValue = (
-                    <Chip
-                      variant="soft"
-                      size="sm"
-                      startDecorator={getStatusIcon(value as string)}
-                      color={getStatusColor(value as string)}
-                    >
-                      {(value as string)?.replace('_', ' ').toUpperCase() || 'N/A'}
-                    </Chip>
-                  );
-                } else {
-                  displayValue = String(value);
-                }
-
-                return (
-                  <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
-                    <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize', minWidth: '120px' }}>
-                      {key.replace(/_/g, ' ')}:
-                    </Typography>
-                    <Typography level="body-sm" sx={{ textAlign: 'right', wordBreak: 'break-word' }}>
-                      {displayValue}
-                    </Typography>
-                  </Box>
-                );
-              }
-              return null;
-            })}
+            {/* Order Number */}
+            {selectedRow.order_number && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Number:</Typography>
+                <Typography level="body-sm">{selectedRow.order_number}</Typography>
+              </Box>
+            )}
+            
+            {/* Order Date */}
+            {selectedRow.created_at && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Date:</Typography>
+                <Typography level="body-sm">{new Date(selectedRow.created_at).toLocaleString()}</Typography>
+              </Box>
+            )}
+            
+            {/* Status */}
+            {selectedRow.status && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Status:</Typography>
+                <Chip
+                  variant="soft"
+                  size="sm"
+                  startDecorator={getStatusIcon(selectedRow.status)}
+                  color={getStatusColor(selectedRow.status)}
+                >
+                  {selectedRow.status?.toUpperCase() || 'N/A'}
+                </Chip>
+              </Box>
+            )}
+            
+            {/* Order Type */}
+            {selectedRow.order_type && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Type:</Typography>
+                <Typography level="body-sm" sx={{ textTransform: 'capitalize' }}>{selectedRow.order_type}</Typography>
+              </Box>
+            )}
+            
+            {/* Payment Method */}
+            {selectedRow.payment_method && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Payment Method:</Typography>
+                <Typography level="body-sm" sx={{ textTransform: 'capitalize' }}>{selectedRow.payment_method}</Typography>
+              </Box>
+            )}
+            
+            {/* Total Price */}
+            {selectedRow.total_price !== undefined && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Total Amount:</Typography>
+                <Typography level="body-sm" fontWeight="bold" color="success">UGX: {Number(selectedRow.total_price).toLocaleString()}</Typography>
+              </Box>
+            )}
+            
+            {/* Total Items */}
+            {selectedRow.total_items !== undefined && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Total Items:</Typography>
+                <Typography level="body-sm">{selectedRow.total_items}</Typography>
+              </Box>
+            )}
           </Box>
         </Box>
 
-        {/* Order Items Section - Tabular Form */}
+        {/* Customer Information Section */}
+        {(selectedRow.first_name || selectedRow.email || selectedRow.phone_number) && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Customer Information
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+              gap: 2 
+            }}>
+              {selectedRow.first_name && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Name:</Typography>
+                  <Typography level="body-sm">{selectedRow.first_name} {selectedRow.last_name || ''}</Typography>
+                </Box>
+              )}
+              {selectedRow.email && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Email:</Typography>
+                  <Typography level="body-sm">{selectedRow.email}</Typography>
+                </Box>
+              )}
+              {selectedRow.phone_number && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Phone:</Typography>
+                  <Typography level="body-sm">{selectedRow.phone_number}</Typography>
+                </Box>
+              )}
+              {selectedRow.city && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">City:</Typography>
+                  <Typography level="body-sm">{selectedRow.city}</Typography>
+                </Box>
+              )}
+              {selectedRow.town && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Town:</Typography>
+                  <Typography level="body-sm">{selectedRow.town}</Typography>
+                </Box>
+              )}
+              {selectedRow.address && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Address:</Typography>
+                  <Typography level="body-sm">{selectedRow.address}</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Order Items Section - Tabular Form with Product Details */}
         {selectedRow.items && selectedRow.items.length > 0 && (
           <Box>
             <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
@@ -1529,94 +1607,112 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
                   '--Table-headerUnderlineThickness': '1px',
                   '--TableCell-paddingY': '8px',
                   '--TableCell-paddingX': '12px',
-                  minWidth: 500,
+                  minWidth: 600,
                 }}
               >
                 <thead>
                   <tr>
                     <th style={{ width: 80 }}>Image</th>
-                    <th style={{ width: 200 }}>Product Name</th>
-                    <th style={{ width: 100 }}>Quantity</th>
+                    <th style={{ width: 250 }}>Product Name</th>
+                    <th style={{ width: 80 }}>Quantity</th>
                     <th style={{ width: 120 }}>Unit Price</th>
                     <th style={{ width: 120 }}>Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedRow.items.map((item: any, index: number) => (
-                    <tr key={index}>
-                      <td>
-                        <Box 
-                          sx={{ 
-                            width: 60, 
-                            height: 60, 
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: 1,
-                            bgcolor: '#f5f5f5',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <img
-                            src={item.image_url || item.image || item.product_image || '/placeholder-image.png'}
-                            alt={item.product_name || item.name || 'Product'}
-                            style={{ 
-                              width: '100%', 
-                              height: '100%', 
-                              objectFit: 'cover'
+                  {selectedRow.items.map((item: any, index: number) => {
+                    // Get product details from nested product_details or direct properties
+                    const productDetails = item.product_details || item;
+                    const productName = productDetails?.name || item.product_name || 'Unknown Product';
+                    const productImage = productDetails?.image_url || item.image_url || item.image || '/placeholder-image.png';
+                    const unitPrice = item.price_at_time || productDetails?.price || item.price || 0;
+                    const quantity = item.quantity || 1;
+                    const subtotal = unitPrice * quantity;
+                    const brands = productDetails?.brands || [];
+                    const categories = productDetails?.categories || [];
+
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <Box 
+                            sx={{ 
+                              width: 60, 
+                              height: 60, 
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 1,
+                              bgcolor: '#f5f5f5',
+                              overflow: 'hidden'
                             }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder-image.png';
-                            }}
-                          />
-                        </Box>
-                      </td>
-                      <td>
-                        <Box>
+                          >
+                            <img
+                              src={productImage}
+                              alt={productName}
+                              style={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                              }}
+                            />
+                          </Box>
+                        </td>
+                        <td>
+                          <Box>
+                            <Typography level="body-sm" fontWeight="md">
+                              {productName}
+                            </Typography>
+                            {brands.length > 0 && (
+                              <Typography level="body-xs" textColor="text.secondary">
+                                Brand: {brands.join(', ')}
+                              </Typography>
+                            )}
+                            {categories.length > 0 && (
+                              <Typography level="body-xs" textColor="text.secondary">
+                                Category: {categories.join(', ')}
+                              </Typography>
+                            )}
+                            {productDetails?.discount > 0 && (
+                              <Chip size="sm" variant="soft" color="success" sx={{ mt: 0.5 }}>
+                                {productDetails.discount}% OFF
+                              </Chip>
+                            )}
+                          </Box>
+                        </td>
+                        <td>
                           <Typography level="body-sm" fontWeight="md">
-                            {item.product_name || item.name || item.product?.name || 'Unknown Product'}
+                            {quantity}
                           </Typography>
-                          {item.sku && (
-                            <Typography level="body-xs" textColor="text.secondary">
-                              SKU: {item.sku}
-                            </Typography>
-                          )}
-                          {item.brand && (
-                            <Typography level="body-xs" textColor="text.secondary">
-                              Brand: {item.brand}
-                            </Typography>
-                          )}
-                        </Box>
-                      </td>
-                      <td>
-                        <Typography level="body-sm">
-                          {item.quantity || item.qty || 1}
-                        </Typography>
-                      </td>
-                      <td>
-                        <Typography level="body-sm">
-                          UGX: {(item.price || item.unit_price || 0).toLocaleString()}
-                        </Typography>
-                      </td>
-                      <td>
-                        <Typography level="body-sm" fontWeight="bold" color="success">
-                          UGX: {((item.price || item.unit_price || 0) * (item.quantity || item.qty || 1)).toLocaleString()}
-                        </Typography>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td>
+                          <Typography level="body-sm">
+                            UGX: {unitPrice.toLocaleString()}
+                          </Typography>
+                        </td>
+                        <td>
+                          <Typography level="body-sm" fontWeight="bold" color="success">
+                            UGX: {subtotal.toLocaleString()}
+                          </Typography>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold', padding: '12px' }}>
                       Total Amount:
                     </td>
-                    <td>
+                    <td style={{ padding: '12px' }}>
                       <Typography level="body-md" fontWeight="bold" color="success">
                         UGX: {selectedRow.items.reduce((total: number, item: any) => {
-                          const price = item.price || item.unit_price || 0;
-                          const quantity = item.quantity || item.qty || 1;
-                          return total + (price * quantity);
+                          const productDetails = item.product_details || item;
+                          const unitPrice = item.price_at_time || productDetails?.price || 0;
+                          const quantity = item.quantity || 1;
+                          return total + (unitPrice * quantity);
                         }, 0).toLocaleString()}
                       </Typography>
                     </td>
@@ -1624,115 +1720,6 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
                 </tfoot>
               </Table>
             </Sheet>
-          </Box>
-        )}
-
-        {/* Product Details Section (for products type) */}
-        {type === 'products' && selectedRow.image && (
-          <Box>
-            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
-              Product Image
-            </Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              p: 2,
-              bgcolor: '#f5f5f5',
-              borderRadius: 'sm',
-            }}>
-              <img
-                src={selectedRow.image}
-                alt={selectedRow.name || 'Product'}
-                style={{ 
-                  maxWidth: '100%', 
-                  height: 'auto', 
-                  maxHeight: '300px', 
-                  objectFit: 'contain',
-                  borderRadius: '8px'
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/placeholder-image.png';
-                }}
-              />
-            </Box>
-          </Box>
-        )}
-
-        {/* Additional Product Information (for products type) */}
-        {type === 'products' && (
-          <Box>
-            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
-              Product Details
-            </Typography>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
-              gap: 2 
-            }}>
-              {selectedRow.description && (
-                <Box sx={{ gridColumn: isMobile ? '1' : '1/-1' }}>
-                  <Typography level="body-sm" fontWeight="bold">Description:</Typography>
-                  <Typography level="body-sm">{selectedRow.description}</Typography>
-                </Box>
-              )}
-              {selectedRow.discount > 0 && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Discount:</Typography>
-                  <Typography level="body-sm" color="success">{selectedRow.discount}%</Typography>
-                </Box>
-              )}
-              {selectedRow.sales_count !== undefined && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Sales Count:</Typography>
-                  <Typography level="body-sm">{selectedRow.sales_count}</Typography>
-                </Box>
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* Customer Details Section (for orders type) */}
-        {type === 'orders' && selectedRow.customer_name && (
-          <Box>
-            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
-              Customer Information
-            </Typography>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
-              gap: 2 
-            }}>
-              {selectedRow.first_name && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Name:</Typography>
-                  <Typography level="body-sm">{selectedRow.first_name} {selectedRow.last_name}</Typography>
-                </Box>
-              )}
-              {selectedRow.email && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Email:</Typography>
-                  <Typography level="body-sm">{selectedRow.email}</Typography>
-                </Box>
-              )}
-              {selectedRow.phone_number && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Phone:</Typography>
-                  <Typography level="body-sm">{selectedRow.phone_number}</Typography>
-                </Box>
-              )}
-              {selectedRow.city && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">City:</Typography>
-                  <Typography level="body-sm">{selectedRow.city}</Typography>
-                </Box>
-              )}
-              {selectedRow.town && (
-                <Box>
-                  <Typography level="body-sm" fontWeight="bold">Town:</Typography>
-                  <Typography level="body-sm">{selectedRow.town}</Typography>
-                </Box>
-              )}
-            </Box>
           </Box>
         )}
       </Box>

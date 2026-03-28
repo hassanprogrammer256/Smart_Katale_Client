@@ -33,6 +33,7 @@ export default function Profile() {
         const response = await axios.get(`${API_URL}/accounts/${userId}/details`);
   
         if (response.data) {
+          console.log(response.data)
           setFormData({
             first_name: response.data.first_name || '',
             last_name: response.data.last_name || '',

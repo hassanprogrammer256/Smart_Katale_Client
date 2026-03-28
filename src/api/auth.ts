@@ -210,7 +210,7 @@ console.error('Failed to fetch data:', get_total_sales.reason);
       orders:ordersData,
       timestamp: new Date().toISOString()
     };
-
+console.log({response})
     return response
 
   } catch (error) {

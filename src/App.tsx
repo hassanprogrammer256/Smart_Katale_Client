@@ -44,9 +44,9 @@ function App() {
           </ProtectedRoute>
         }
       >
+         <Route path="/order-success" element={<OrderSuccess />} />
         {/* Protected routes - require authentication (customers only) */}
       <Route element={<ProtectedRoute requiredRole="customer" />}>
-        <Route path="/order-success" element={<OrderSuccess />} />
         <Route path="/my-profile" element={<MyProfile />} />
       </Route>
      

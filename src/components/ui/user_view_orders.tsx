@@ -1428,61 +1428,317 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
       </Snackbar>
 
       {/* Detail Modal */}
-      <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
-        <ModalDialog
-          aria-labelledby="detail-modal"
-          layout="center"
-          size="md"
-          sx={{ maxWidth: 500, width: isMobile ? '90%' : 'auto' }}
-        >
-          <ModalClose />
-          <Typography id="detail-modal" level="h2">
-            {type === 'orders' && 'Order Details'}
-            {type === 'products' && 'Product Details'}
-            {type === 'customers' && 'Customer Details'}
+<Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
+  <ModalDialog
+    aria-labelledby="detail-modal"
+    layout="center"
+    size="lg"
+    sx={{ 
+      maxWidth: 800, 
+      width: isMobile ? '95%' : 'auto',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+    }}
+  >
+    <ModalClose />
+    <Typography id="detail-modal" level="h2">
+      {type === 'orders' && 'Order Details'}
+      {type === 'products' && 'Product Details'}
+      {type === 'customers' && 'Customer Details'}
+    </Typography>
+    <Divider sx={{ my: 2 }} />
+    {selectedRow && (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 3, 
+        maxHeight: '70vh', 
+        overflowY: 'auto',
+        px: 1,
+      }}>
+        {/* Order Information Section */}
+        <Box>
+          <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+            Order Information
           </Typography>
-          <Divider sx={{ my: 2 }} />
-          {selectedRow && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '60vh', overflowY: 'auto' }}>
-              {Object.entries(selectedRow).map(([key, value]) => {
-                if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
-                  let displayValue: React.ReactNode;
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+            gap: 2 
+          }}>
+            {Object.entries(selectedRow).map(([key, value]) => {
+              if (value !== null && value !== undefined && key !== 'id' && key !== 'items' && key !== 'image' && typeof value !== 'object') {
+                let displayValue: React.ReactNode;
 
-                  if (key === 'image') {
-                    displayValue = (
-                      <img
-                        src={value as string}
-                        alt="Product"
-                        style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }}
-                      />
-                    );
-                  } else if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
-                    displayValue = `UGX: ${Number(value).toLocaleString()}`;
-                  } else if (key.includes('date') && value) {
-                    displayValue = new Date(value as string).toLocaleString();
-                  } else if (typeof value === 'object') {
-                    return null;
-                  } else {
-                    displayValue = String(value);
-                  }
-
-                  return (
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                      <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize', minWidth: '120px' }}>
-                        {key.replace('_', ' ')}:
-                      </Typography>
-                      <Typography level="body-sm" sx={{ textAlign: 'right', wordBreak: 'break-word' }}>
-                        {displayValue}
-                      </Typography>
-                    </Box>
+                if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
+                  displayValue = `UGX: ${Number(value).toLocaleString()}`;
+                } else if (key.includes('date') && value) {
+                  displayValue = new Date(value as string).toLocaleString();
+                } else if (key === 'status') {
+                  displayValue = (
+                    <Chip
+                      variant="soft"
+                      size="sm"
+                      startDecorator={getStatusIcon(value as string)}
+                      color={getStatusColor(value as string)}
+                    >
+                      {(value as string)?.replace('_', ' ').toUpperCase() || 'N/A'}
+                    </Chip>
                   );
+                } else {
+                  displayValue = String(value);
                 }
-                return null;
-              })}
+
+                return (
+                  <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                    <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize', minWidth: '120px' }}>
+                      {key.replace(/_/g, ' ')}:
+                    </Typography>
+                    <Typography level="body-sm" sx={{ textAlign: 'right', wordBreak: 'break-word' }}>
+                      {displayValue}
+                    </Typography>
+                  </Box>
+                );
+              }
+              return null;
+            })}
+          </Box>
+        </Box>
+
+        {/* Order Items Section - Tabular Form */}
+        {selectedRow.items && selectedRow.items.length > 0 && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Order Items ({selectedRow.items.length})
+            </Typography>
+            <Sheet
+              variant="outlined"
+              sx={{
+                width: '100%',
+                borderRadius: 'sm',
+                overflow: 'auto',
+                maxHeight: '400px',
+              }}
+            >
+              <Table
+                stickyHeader
+                hoverRow
+                sx={{
+                  '--TableCell-headBackground': 'var(--joy-palette-background-level1)',
+                  '--Table-headerUnderlineThickness': '1px',
+                  '--TableCell-paddingY': '8px',
+                  '--TableCell-paddingX': '12px',
+                  minWidth: 500,
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={{ width: 80 }}>Image</th>
+                    <th style={{ width: 200 }}>Product Name</th>
+                    <th style={{ width: 100 }}>Quantity</th>
+                    <th style={{ width: 120 }}>Unit Price</th>
+                    <th style={{ width: 120 }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedRow.items.map((item: any, index: number) => (
+                    <tr key={index}>
+                      <td>
+                        <Box 
+                          sx={{ 
+                            width: 60, 
+                            height: 60, 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 1,
+                            bgcolor: '#f5f5f5',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <img
+                            src={item.image_url || item.image || item.product_image || '/placeholder-image.png'}
+                            alt={item.product_name || item.name || 'Product'}
+                            style={{ 
+                              width: '100%', 
+                              height: '100%', 
+                              objectFit: 'cover'
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                            }}
+                          />
+                        </Box>
+                      </td>
+                      <td>
+                        <Box>
+                          <Typography level="body-sm" fontWeight="md">
+                            {item.product_name || item.name || item.product?.name || 'Unknown Product'}
+                          </Typography>
+                          {item.sku && (
+                            <Typography level="body-xs" textColor="text.secondary">
+                              SKU: {item.sku}
+                            </Typography>
+                          )}
+                          {item.brand && (
+                            <Typography level="body-xs" textColor="text.secondary">
+                              Brand: {item.brand}
+                            </Typography>
+                          )}
+                        </Box>
+                      </td>
+                      <td>
+                        <Typography level="body-sm">
+                          {item.quantity || item.qty || 1}
+                        </Typography>
+                      </td>
+                      <td>
+                        <Typography level="body-sm">
+                          UGX: {(item.price || item.unit_price || 0).toLocaleString()}
+                        </Typography>
+                      </td>
+                      <td>
+                        <Typography level="body-sm" fontWeight="bold" color="success">
+                          UGX: {((item.price || item.unit_price || 0) * (item.quantity || item.qty || 1)).toLocaleString()}
+                        </Typography>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                      Total Amount:
+                    </td>
+                    <td>
+                      <Typography level="body-md" fontWeight="bold" color="success">
+                        UGX: {selectedRow.items.reduce((total: number, item: any) => {
+                          const price = item.price || item.unit_price || 0;
+                          const quantity = item.quantity || item.qty || 1;
+                          return total + (price * quantity);
+                        }, 0).toLocaleString()}
+                      </Typography>
+                    </td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </Sheet>
+          </Box>
+        )}
+
+        {/* Product Details Section (for products type) */}
+        {type === 'products' && selectedRow.image && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Product Image
+            </Typography>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              p: 2,
+              bgcolor: '#f5f5f5',
+              borderRadius: 'sm',
+            }}>
+              <img
+                src={selectedRow.image}
+                alt={selectedRow.name || 'Product'}
+                style={{ 
+                  maxWidth: '100%', 
+                  height: 'auto', 
+                  maxHeight: '300px', 
+                  objectFit: 'contain',
+                  borderRadius: '8px'
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                }}
+              />
             </Box>
-          )}
-        </ModalDialog>
-      </Modal>
+          </Box>
+        )}
+
+        {/* Additional Product Information (for products type) */}
+        {type === 'products' && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Product Details
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+              gap: 2 
+            }}>
+              {selectedRow.description && (
+                <Box sx={{ gridColumn: isMobile ? '1' : '1/-1' }}>
+                  <Typography level="body-sm" fontWeight="bold">Description:</Typography>
+                  <Typography level="body-sm">{selectedRow.description}</Typography>
+                </Box>
+              )}
+              {selectedRow.discount > 0 && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Discount:</Typography>
+                  <Typography level="body-sm" color="success">{selectedRow.discount}%</Typography>
+                </Box>
+              )}
+              {selectedRow.sales_count !== undefined && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Sales Count:</Typography>
+                  <Typography level="body-sm">{selectedRow.sales_count}</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {/* Customer Details Section (for orders type) */}
+        {type === 'orders' && selectedRow.customer_name && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Customer Information
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+              gap: 2 
+            }}>
+              {selectedRow.first_name && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Name:</Typography>
+                  <Typography level="body-sm">{selectedRow.first_name} {selectedRow.last_name}</Typography>
+                </Box>
+              )}
+              {selectedRow.email && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Email:</Typography>
+                  <Typography level="body-sm">{selectedRow.email}</Typography>
+                </Box>
+              )}
+              {selectedRow.phone_number && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Phone:</Typography>
+                  <Typography level="body-sm">{selectedRow.phone_number}</Typography>
+                </Box>
+              )}
+              {selectedRow.city && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">City:</Typography>
+                  <Typography level="body-sm">{selectedRow.city}</Typography>
+                </Box>
+              )}
+              {selectedRow.town && (
+                <Box>
+                  <Typography level="body-sm" fontWeight="bold">Town:</Typography>
+                  <Typography level="body-sm">{selectedRow.town}</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    )}
+  </ModalDialog>
+</Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>

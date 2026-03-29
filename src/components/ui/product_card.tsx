@@ -28,7 +28,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   image,
   discount,
   description,
-  rating = 0,
   status = '',
 }) => {
   const navigate = useNavigate();
@@ -225,15 +224,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {name || 'Unnamed Product'}
         </Typography>
         
-        {/* Rating */}
-        {rating > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, my: 0.5 }}>
-            {/* <Rating value={rating}   /> */}
-            <Typography level="body-xs" textColor="neutral.300">
-              ({rating.toFixed(1)})
-            </Typography>
-          </Box>
-        )}
+       
         
         {/* Description (truncated) */}
         {description && (

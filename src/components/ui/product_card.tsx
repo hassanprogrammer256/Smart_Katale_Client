@@ -183,7 +183,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </AspectRatio>
 
   
-      {discount && discount > 0 && (
+      {discount?discount > 0 && (
         <Chip
           size="md"
           variant="solid"
@@ -197,7 +197,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         >
           -{discount}%
         </Chip>
-      )}
+      ): null}
       {status && status !== ''  && (
         <Chip
           size="md"
@@ -218,22 +218,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <CardContent sx={{ 
         bgcolor: 'rgba(0,0,0,0.7)', 
         color: 'white',
-        p: 1.5,
+         p: 1.5,
         flex: 1,
       }}>
         <Typography level="title-md" textColor="white" noWrap>
           {name || 'Unnamed Product'}
         </Typography>
         
-        {/* Rating */}
-        {rating > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, my: 0.5 }}>
-            {/* <Rating value={rating}   /> */}
-            <Typography level="body-xs" textColor="neutral.300">
-              ({rating.toFixed(1)})
-            </Typography>
-          </Box>
-        )}
+      
         
         {/* Description (truncated) */}
         {description && (
@@ -255,7 +247,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         {/* Price */}
         <Typography level="title-lg" textColor="success.300" sx={{ mt: 1 }}>
-          UGX {price?.toLocaleString() || '0'}
+          UGX {price?.toLocaleString() || 'UGX: 0'}
         </Typography>
       </CardContent>
 

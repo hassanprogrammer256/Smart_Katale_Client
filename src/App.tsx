@@ -25,7 +25,6 @@ function App() {
         height: '100vh', 
         flexDirection:'column'
       }}>
-
         <Typography level="h4">Authenticating...</Typography>
       </Box>
     );
@@ -33,7 +32,10 @@ function App() {
 
   return (
     <Routes>
-      {/* Public routes - accessible to everyone except managers */}
+      {/* Public routes - accessible to everyone */}
+      <Route path="/order-success" element={<OrderSuccess />} />
+
+      {/* Main app routes with Home layout */}
       <Route 
         path="/" 
         element={
@@ -45,11 +47,10 @@ function App() {
         }
       >
         {/* Protected routes - require authentication (customers only) */}
-      <Route element={<ProtectedRoute requiredRole="customer" />}>
-        <Route path="/order-success" element={<OrderSuccess />} />
-        <Route path="/my-profile" element={<MyProfile />} />
-      </Route>
-     
+        <Route element={<ProtectedRoute requiredRole="customer" />}>
+          <Route path="/my-profile" element={<MyProfile />} />
+        </Route>
+       
         <Route index element={<Shop />} />
         <Route path="shop" element={<Shop />} />
         <Route path="cart" element={<Cart />} />
@@ -62,14 +63,11 @@ function App() {
         <Route path="/accounts/register" element={<Auth />} />
         <Route path="/accounts" element={<Navigate to="/accounts/login" replace />} />
       </Route>
- 
-  
+
       {/* Admin routes - require manager role (separate layout) */}
       <Route element={<ProtectedRoute requiredRole="manager" />}>
         <Route path="/admin" element={<ManagerDashBoard />} />
       </Route>
-      
-
 
       {/* Unauthorized page */}
       <Route path="/unauthorized" element={<Unauthorized />} />

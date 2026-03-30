@@ -28,7 +28,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   image,
   discount,
   description,
-  rating = 0,
   status = '',
 }) => {
   const navigate = useNavigate();
@@ -225,7 +224,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {name || 'Unnamed Product'}
         </Typography>
         
-      
+       
         
         {/* Description (truncated) */}
         {description && (

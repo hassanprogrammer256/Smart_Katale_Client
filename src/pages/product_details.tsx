@@ -117,18 +117,20 @@ const ProductDetails = () => {
     );
   }
 
-  if (!product) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography level="h3">Product not found</Typography>
-        <Button sx={{ mt: 2 }} onClick={() => navigate('/shop')}>
-          Back to Shop
-        </Button>
-      </Box>
-    );
-  }
+if (!product) {
+  return (
+    <Box sx={{ p: 4, textAlign: 'center' }}>
+      <Typography level="h3">Product not found</Typography>
+      <Button sx={{ mt: 2 }} onClick={() => navigate('/shop')}>
+        Back to Shop
+      </Button>
+    </Box>
+  );
+}
 
-  const discountedPrice:number =  product ? product.price || 0* (1 - (product.discount || 0) / 100) : 0;
+const price = product.price || 0;
+const discount = product.discount || 0;
+const discountedPrice: number = price - (price * (discount / 100));
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>

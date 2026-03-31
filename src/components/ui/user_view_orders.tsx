@@ -1428,61 +1428,304 @@ export const AnalysisTable = React.memo((props: AnalysisTableProps) => {
       </Snackbar>
 
       {/* Detail Modal */}
-      <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
-        <ModalDialog
-          aria-labelledby="detail-modal"
-          layout="center"
-          size="md"
-          sx={{ maxWidth: 500, width: isMobile ? '90%' : 'auto' }}
-        >
-          <ModalClose />
-          <Typography id="detail-modal" level="h2">
-            {type === 'orders' && 'Order Details'}
-            {type === 'products' && 'Product Details'}
-            {type === 'customers' && 'Customer Details'}
+{/* Detail Modal */}
+<Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
+  <ModalDialog
+    aria-labelledby="detail-modal"
+    layout="center"
+    size="lg"
+    sx={{ 
+      maxWidth: 900, 
+      width: isMobile ? '95%' : 'auto',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+    }}
+  >
+    <ModalClose />
+    <Typography id="detail-modal" level="h2">
+      {type === 'orders' && 'Order Details'}
+      {type === 'products' && 'Product Details'}
+      {type === 'customers' && 'Customer Details'}
+    </Typography>
+    <Divider sx={{ my: 2 }} />
+    {selectedRow && (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 3, 
+        maxHeight: '70vh', 
+        overflowY: 'auto',
+        px: 1,
+      }}>
+        {/* Order Information Section */}
+        <Box>
+          <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+            Order Information
           </Typography>
-          <Divider sx={{ my: 2 }} />
-          {selectedRow && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '60vh', overflowY: 'auto' }}>
-              {Object.entries(selectedRow).map(([key, value]) => {
-                if (value !== null && value !== undefined && key !== 'id' && key !== 'items') {
-                  let displayValue: React.ReactNode;
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+            gap: 2 
+          }}>
+            {/* Order Number */}
+            {selectedRow.order_number && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Number:</Typography>
+                <Typography level="body-sm">{selectedRow.order_number}</Typography>
+              </Box>
+            )}
+            
+            {/* Order Date */}
+            {selectedRow.created_at && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Date:</Typography>
+                <Typography level="body-sm">{new Date(selectedRow.created_at).toLocaleString()}</Typography>
+              </Box>
+            )}
+            
+            {/* Status */}
+            {selectedRow.status && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Status:</Typography>
+                <Chip
+                  variant="soft"
+                  size="sm"
+                  startDecorator={getStatusIcon(selectedRow.status)}
+                  color={getStatusColor(selectedRow.status)}
+                >
+                  {selectedRow.status?.toUpperCase() || 'N/A'}
+                </Chip>
+              </Box>
+            )}
+            
+            {/* Order Type */}
+            {selectedRow.order_type && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Order Type:</Typography>
+                <Typography level="body-sm" sx={{ textTransform: 'capitalize' }}>{selectedRow.order_type}</Typography>
+              </Box>
+            )}
+            
+            {/* Payment Method */}
+            {selectedRow.payment_method && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Payment Method:</Typography>
+                <Typography level="body-sm" sx={{ textTransform: 'capitalize' }}>{selectedRow.payment_method}</Typography>
+              </Box>
+            )}
+            
+            {/* Total Price */}
+            {selectedRow.total_price !== undefined && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Total Amount:</Typography>
+                <Typography level="body-sm" fontWeight="bold" color="success">UGX: {Number(selectedRow.total_price).toLocaleString()}</Typography>
+              </Box>
+            )}
+            
+            {/* Total Items */}
+            {selectedRow.total_items !== undefined && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                <Typography level="body-sm" fontWeight="bold">Total Items:</Typography>
+                <Typography level="body-sm">{selectedRow.total_items}</Typography>
+              </Box>
+            )}
+          </Box>
+        </Box>
 
-                  if (key === 'image') {
-                    displayValue = (
-                      <img
-                        src={value as string}
-                        alt="Product"
-                        style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain' }}
-                      />
-                    );
-                  } else if (key.includes('amount') || key.includes('price') || key.includes('spent')) {
-                    displayValue = `UGX: ${Number(value).toLocaleString()}`;
-                  } else if (key.includes('date') && value) {
-                    displayValue = new Date(value as string).toLocaleString();
-                  } else if (typeof value === 'object') {
-                    return null;
-                  } else {
-                    displayValue = String(value);
-                  }
-
-                  return (
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                      <Typography level="body-sm" fontWeight="bold" sx={{ textTransform: 'capitalize', minWidth: '120px' }}>
-                        {key.replace('_', ' ')}:
-                      </Typography>
-                      <Typography level="body-sm" sx={{ textAlign: 'right', wordBreak: 'break-word' }}>
-                        {displayValue}
-                      </Typography>
-                    </Box>
-                  );
-                }
-                return null;
-              })}
+        {/* Customer Information Section */}
+        {(selectedRow.first_name || selectedRow.email || selectedRow.phone_number) && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Customer Information
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', 
+              gap: 2 
+            }}>
+              {selectedRow.first_name && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Name:</Typography>
+                  <Typography level="body-sm">{selectedRow.first_name} {selectedRow.last_name || ''}</Typography>
+                </Box>
+              )}
+              {selectedRow.email && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Email:</Typography>
+                  <Typography level="body-sm">{selectedRow.email}</Typography>
+                </Box>
+              )}
+              {selectedRow.phone_number && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Phone:</Typography>
+                  <Typography level="body-sm">{selectedRow.phone_number}</Typography>
+                </Box>
+              )}
+              {selectedRow.city && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">City:</Typography>
+                  <Typography level="body-sm">{selectedRow.city}</Typography>
+                </Box>
+              )}
+              {selectedRow.town && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Town:</Typography>
+                  <Typography level="body-sm">{selectedRow.town}</Typography>
+                </Box>
+              )}
+              {selectedRow.address && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, p: 1, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+                  <Typography level="body-sm" fontWeight="bold">Address:</Typography>
+                  <Typography level="body-sm">{selectedRow.address}</Typography>
+                </Box>
+              )}
             </Box>
-          )}
-        </ModalDialog>
-      </Modal>
+          </Box>
+        )}
+
+        {/* Order Items Section - Tabular Form with Product Details */}
+        {selectedRow.items && selectedRow.items.length > 0 && (
+          <Box>
+            <Typography level="title-md" fontWeight="bold" sx={{ mb: 2, color: 'primary.500' }}>
+              Order Items ({selectedRow.items.length})
+            </Typography>
+            <Sheet
+              variant="outlined"
+              sx={{
+                width: '100%',
+                borderRadius: 'sm',
+                overflow: 'auto',
+                maxHeight: '400px',
+              }}
+            >
+              <Table
+                stickyHeader
+                hoverRow
+                sx={{
+                  '--TableCell-headBackground': 'var(--joy-palette-background-level1)',
+                  '--Table-headerUnderlineThickness': '1px',
+                  '--TableCell-paddingY': '8px',
+                  '--TableCell-paddingX': '12px',
+                  minWidth: 600,
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={{ width: 80 }}>Image</th>
+                    <th style={{ width: 250 }}>Product Name</th>
+                    <th style={{ width: 80 }}>Quantity</th>
+                    <th style={{ width: 120 }}>Unit Price</th>
+                    <th style={{ width: 120 }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedRow.items.map((item: any, index: number) => {
+                    // Get product details from nested product_details or direct properties
+                    const productDetails = item.product_details || item;
+                    const productName = productDetails?.name || item.product_name || 'Unknown Product';
+                    const productImage = productDetails?.image_url || item.image_url || item.image || '/placeholder-image.png';
+                    const unitPrice = item.price_at_time || productDetails?.price || item.price || 0;
+                    const quantity = item.quantity || 1;
+                    const subtotal = unitPrice * quantity;
+                    const brands = productDetails?.brands || [];
+                    const categories = productDetails?.categories || [];
+
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <Box 
+                            sx={{ 
+                              width: 60, 
+                              height: 60, 
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 1,
+                              bgcolor: '#f5f5f5',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <img
+                              src={productImage}
+                              alt={productName}
+                              style={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                              }}
+                            />
+                          </Box>
+                        </td>
+                        <td>
+                          <Box>
+                            <Typography level="body-sm" fontWeight="md">
+                              {productName}
+                            </Typography>
+                            {brands.length > 0 && (
+                              <Typography level="body-xs" textColor="text.secondary">
+                                Brand: {brands.join(', ')}
+                              </Typography>
+                            )}
+                            {categories.length > 0 && (
+                              <Typography level="body-xs" textColor="text.secondary">
+                                Category: {categories.join(', ')}
+                              </Typography>
+                            )}
+                            {productDetails?.discount > 0 && (
+                              <Chip size="sm" variant="soft" color="success" sx={{ mt: 0.5 }}>
+                                {productDetails.discount}% OFF
+                              </Chip>
+                            )}
+                          </Box>
+                        </td>
+                        <td>
+                          <Typography level="body-sm" fontWeight="md">
+                            {quantity}
+                          </Typography>
+                        </td>
+                        <td>
+                          <Typography level="body-sm">
+                            UGX: {unitPrice.toLocaleString()}
+                          </Typography>
+                        </td>
+                        <td>
+                          <Typography level="body-sm" fontWeight="bold" color="success">
+                            UGX: {subtotal.toLocaleString()}
+                          </Typography>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 'bold', padding: '12px' }}>
+                      Total Amount:
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <Typography level="body-md" fontWeight="bold" color="success">
+                        UGX: {selectedRow.items.reduce((total: number, item: any) => {
+                          const productDetails = item.product_details || item;
+                          const unitPrice = item.price_at_time || productDetails?.price || 0;
+                          const quantity = item.quantity || 1;
+                          return total + (unitPrice * quantity);
+                        }, 0).toLocaleString()}
+                      </Typography>
+                    </td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </Sheet>
+          </Box>
+        )}
+      </Box>
+    )}
+  </ModalDialog>
+</Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>

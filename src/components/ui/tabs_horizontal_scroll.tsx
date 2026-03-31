@@ -323,7 +323,7 @@ const Schedule = (props: ScheduleProps) => {
             <Profile />
           </div>
         ),
-        roles: ['customer', 'manager'],
+        roles: ['customer'],
         order: 1
       }
     ];

@@ -105,7 +105,7 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
           </ListItemDecorator >
           <ListItemContent>
            
-    <Typography level="body-sm" noWrap> Pioneer Mall - Shop No. PA48, Basement Floor. &#40; Opp. Mabiriizi Complex &#41;     </Typography>
+    <Typography level="body-sm" noWrap> Pioneer Mall - Shop No. PA41, Basement Floor. &#40; Opp. Mabiriizi Complex &#41;     </Typography>
         
           </ListItemContent>
         </ListItem>

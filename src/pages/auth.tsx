@@ -63,7 +63,7 @@ const Auth = () => {
   else {
     // Protected routes that require authentication
     const protectedPaths = [
-      '/my-profile',
+      '/my-profile', 
       '/admin',
     ];
     
